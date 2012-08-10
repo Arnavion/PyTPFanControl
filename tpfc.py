@@ -167,7 +167,7 @@ class TPFCWindow(QWidget):
 		temps = self._readTemp()
 		for name in self._sensorNames:
 			self._valueLabels[name].setText(str(temps[name]))
-		maxTemp = max([item for item in temps.items() if item[0] not in self._hiddenTemps], key = operator.itemgetter(1))
+		maxTemp = max((item for item in temps.items() if item[0] not in self._hiddenTemps), key = operator.itemgetter(1))
 		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], self._colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 		self.setWindowIcon(self._systemTrayIcon.icon())
 	
@@ -184,7 +184,7 @@ class TPFCWindow(QWidget):
 	
 	def _readFan(self):
 		f = open('/proc/acpi/ibm/fan')
-		fan = {part[0][:-1]:part[-1] for part in [line[:-1].split('\t') for line in f]}
+		fan = {part[0][:-1]:part[-1] for part in (line[:-1].split('\t') for line in f)}
 		f.close()
 		return fan
 	
