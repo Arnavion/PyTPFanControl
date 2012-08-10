@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import bisect
 import operator
@@ -8,7 +8,7 @@ from PySide.QtGui import *
 
 class TPFCWindow(QWidget):
 	def __init__(self):
-		super(TPFCWindow, self).__init__()
+		super().__init__()
 		
 		self.show()
 		
@@ -139,7 +139,7 @@ class TPFCWindow(QWidget):
 		self.update()
 	
 	def setVisible(self, visible):
-		super(TPFCWindow, self).setVisible(visible)
+		super().setVisible(visible)
 		try:
 			self._restoreHideAction.setText('Hide' if visible else 'Restore')
 		except AttributeError:
@@ -167,7 +167,7 @@ class TPFCWindow(QWidget):
 		temps = self._readTemp()
 		for name in self._sensorNames:
 			self._valueLabels[name].setText(str(temps[name]))
-		maxTemp = max([item for item in temps.iteritems() if item[0] not in self._hiddenTemps], key = operator.itemgetter(1))
+		maxTemp = max([item for item in temps.items() if item[0] not in self._hiddenTemps], key = operator.itemgetter(1))
 		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], self._colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 		self.setWindowIcon(self._systemTrayIcon.icon())
 	
@@ -180,7 +180,7 @@ class TPFCWindow(QWidget):
 		f = open('/proc/acpi/ibm/thermal')
 		line = f.read()
 		f.close()
-		return {name:int(temp) for (name, temp) in zip(self._sensorNames, line[(line.find('\t') + 1):-1].split())}
+		return {name: int(temp) for (name, temp) in zip(self._sensorNames, line[(line.find('\t') + 1):-1].split())}
 	
 	def _readFan(self):
 		f = open('/proc/acpi/ibm/fan')
@@ -189,9 +189,9 @@ class TPFCWindow(QWidget):
 		return fan
 	
 	_sensorNames = ['cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr']
-	_hiddenTemps = set(['no5', 'x7d', 'x7f'])
-	_levels = {45:'0', 55:'1', 65:'3', 80:'7', 90:'disengaged'}
-	_colors = {0:Qt.GlobalColor.cyan, 55:Qt.GlobalColor.yellow, 65:Qt.GlobalColor.magenta, 90:Qt.GlobalColor.red}
+	_hiddenTemps = frozenset(['no5', 'x7d', 'x7f'])
+	_levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
+	_colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
 	_colorTemps = sorted(_colors.keys())
 	_valueLabels = {}
 	
@@ -202,7 +202,7 @@ class TPFCWindow(QWidget):
 
 class TPFCTrayIcon(QSystemTrayIcon):
 	def __init__(self, parent):
-		super(TPFCTrayIcon, self).__init__(parent)
+		super().__init__(parent)
 
 		self._trayIconEngine = TPFCTrayIconEngine()
 		self.setIcon(QIcon(self._trayIconEngine))
@@ -215,7 +215,7 @@ class TPFCTrayIcon(QSystemTrayIcon):
 
 class TPFCTrayIconEngine(QIconEngineV2):
 	def __init__(self):
-		super(TPFCTrayIconEngine, self).__init__()
+		super().__init__()
 		self._backgroundBrush = QBrush()
 		self._backgroundBrush.setStyle(Qt.SolidPattern)
 	
