@@ -127,10 +127,8 @@ class TPFCWindow(QWidget):
 			f.close()
 		except IOError:
 			QMessageBox.warning(self, 'Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.')
-			biosModeButton.setEnabled(False)
-			smartModeButton.setEnabled(False)
-			manualModeButton.setEnabled(False)
-			manualModeCombo.setEnabled(False)
+			for control in [biosModeButton, smartModeButton, manualModeButton, manualModeCombo]:
+				control.setEnabled(False)
 		
 		timer = QTimer(self)
 		timer.timeout.connect(self.update)
@@ -222,8 +220,20 @@ class TPFCTrayIconEngine(QIconEngineV2):
 	def paint(self, painter, rect, mode, state):
 		painter.fillRect(rect, Qt.transparent)
 		if self._name != None and self._temp != None:
-			painter.setBackground(self._backgroundBrush)
-			painter.eraseRect(rect)
+			if isinstance(painter.device(), QWidget): # systray icon; only drawText works; fillRect, drawLine, etc. don't
+				pen = painter.pen()
+				penColor = pen.color()
+				pen.setColor(self._backgroundBrush.color())
+				painter.setPen(pen)
+				font = painter.font()
+				font.setPointSize(rect.height())
+				painter.setFont(font)
+				painter.drawText(rect, '\u2588') # █
+				pen.setColor(penColor)
+				painter.setPen(pen)
+			else: # task manager / task switcher icons; fillRect works
+				painter.setBackground(self._backgroundBrush)
+				painter.eraseRect(rect)
 			font = painter.font()
 			fontSize = None
 			text = self._name + '\n' + str(self._temp)
