@@ -126,7 +126,7 @@ class TPFCWindow(QWidget):
 			f = open('/proc/acpi/ibm/fan', 'w')
 			f.close()
 		except IOError:
-			QMessageBox.warning(self, 'Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.')
+			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
 			for control in [biosModeButton, smartModeButton, manualModeButton, manualModeCombo]:
 				control.setEnabled(False)
 		
