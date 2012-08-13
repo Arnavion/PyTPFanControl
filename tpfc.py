@@ -10,6 +10,9 @@ class TPFCWindow(QWidget):
 	def __init__(self):
 		super().__init__()
 		
+		if self._readAcpi('/proc/acpi/battery/BAT0/state')['present'] == 'no':
+			self._hiddenTemps.add('bat')
+		
 		self.show()
 		
 		self.setWindowTitle('TPFanControl')
@@ -174,20 +177,20 @@ class TPFCWindow(QWidget):
 		self._fanStateLabel.setText(fan['level'])
 		self._fanSpeedLabel.setText(fan['speed'])
 	
-	def _readTemp(self):
-		f = open('/proc/acpi/ibm/thermal')
-		line = f.read()
+	def _readAcpi(self, path):
+		f = open(path)
+		result = {pair[0][:pair[1]]: pair[0][pair[1] + 1:].strip() for pair in ((line, line.index(':')) for line in f)}
 		f.close()
-		return {name: int(temp) for (name, temp) in zip(self._sensorNames, line[(line.find('\t') + 1):-1].split())}
+		return result
+	
+	def _readTemp(self):
+		return {name: int(temp) for (name, temp) in zip(self._sensorNames, self._readAcpi('/proc/acpi/ibm/thermal')['temperatures'].split())}
 	
 	def _readFan(self):
-		f = open('/proc/acpi/ibm/fan')
-		fan = {part[0][:-1]:part[-1] for part in (line[:-1].split('\t') for line in f)}
-		f.close()
-		return fan
+		return self._readAcpi('/proc/acpi/ibm/fan')
 	
 	_sensorNames = ['cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr']
-	_hiddenTemps = frozenset(['no5', 'x7d', 'x7f'])
+	_hiddenTemps = set(['no5', 'x7d', 'x7f'])
 	_levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
 	_colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
 	_colorTemps = sorted(_colors.keys())
