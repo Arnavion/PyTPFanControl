@@ -169,8 +169,8 @@ class TPFCWindow(QWidget):
 		for name in self._sensorNames:
 			self._valueLabels[name].setText(str(temps[name]))
 		maxTemp = max((item for item in temps.items() if item[0] not in self._hiddenTemps), key = operator.itemgetter(1))
-		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], self._colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
-		self.setWindowIcon(self._systemTrayIcon.icon())
+		if self._systemTrayIcon.update(maxTemp[0], maxTemp[1], self._colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]]):
+			self.setWindowIcon(self._systemTrayIcon.icon())
 	
 	def updateFanMode(self):
 		fan = self._readFan()
@@ -205,16 +205,20 @@ class TPFCTrayIcon(QSystemTrayIcon):
 	def __init__(self, parent):
 		super().__init__(parent)
 
-		self._trayIconEngine = TPFCTrayIconEngine()
-		self.setIcon(QIcon(self._trayIconEngine))
+		self._iconEngine = TPFCIconEngine()
+		self.setIcon(QIcon(self._iconEngine))
 	
 	def update(self, name, temp, color):
-		if self._trayIconEngine.update(name, temp, color):
+		if self._iconEngine.update(name, temp, color):
 			self.setIcon(self.icon())
+			return True
+		
+		else:
+			return False
 	
-	_trayIconEngine = None
+	_iconEngine = None
 
-class TPFCTrayIconEngine(QIconEngineV2):
+class TPFCIconEngine(QIconEngineV2):
 	def __init__(self):
 		super().__init__()
 		self._backgroundBrush = QBrush()
