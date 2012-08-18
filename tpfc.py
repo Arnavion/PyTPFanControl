@@ -189,8 +189,8 @@ class TPFCWindow(QWidget):
 	def _readFan(self):
 		return self._readAcpi('/proc/acpi/ibm/fan')
 	
-	_sensorNames = ['cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr']
-	_hiddenTemps = set(['no5', 'x7d', 'x7f'])
+	_sensorNames = ['cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr', 'xc3']
+	_hiddenTemps = set(['no5', 'x7d', 'x7f', 'xc3'])
 	_levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
 	_colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
 	_colorTemps = sorted(_colors.keys())
