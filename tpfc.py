@@ -3,17 +3,26 @@
 import bisect
 import operator
 import sys
+
 from PySide.QtCore import *
 from PySide.QtGui import *
+
+from acpi import Temperatures, Fan, Battery
 
 class TPFCWindow(QWidget):
 	def __init__(self):
 		super().__init__()
 		
-		if self._readAcpi('/proc/acpi/battery/BAT0/state')['present'] == 'no':
-			self._hiddenTemps.add('bat')
+		self._hiddenTemps = set(['no5', 'x7d', 'x7f', 'xc3'])
+		self._levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
+		self._colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
+		self._colorTemps = sorted(self._colors.keys())
 		
-		self.show()
+		self._temperatures = Temperatures()
+		self._fan = Fan()
+		
+		if Battery().read()['present'] == 'no':
+			self._hiddenTemps.add('bat')
 		
 		self.setWindowTitle('TPFanControl')
 		
@@ -26,7 +35,7 @@ class TPFCWindow(QWidget):
 		tempsLayout = QVBoxLayout()
 		tempsGB.setLayout(tempsLayout)
 		
-		tempsTable = QTableWidget(len(self._sensorNames), 3)
+		tempsTable = QTableWidget(len(Temperatures.sensorNames), 3)
 		tempsLayout.addWidget(tempsTable)
 		tempsTable.horizontalHeader().hide()
 		tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
@@ -34,7 +43,8 @@ class TPFCWindow(QWidget):
 		tempsTable.setSelectionMode(QTableWidget.NoSelection)
 		tempsTable.setShowGrid(False)
 		
-		for (i, name) in enumerate(self._sensorNames):
+		self._valueLabels = {}
+		for (i, name) in enumerate(Temperatures.sensorNames):
 			tempsTable.setItem(i, 0, QTableWidgetItem(name))
 			
 			tempLabel = QTableWidgetItem()
@@ -51,7 +61,7 @@ class TPFCWindow(QWidget):
 		
 		activeButton = QRadioButton('active')
 		visibleTempsLayout.addWidget(activeButton)
-		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(self._sensorNames.index(name), activeButton.isChecked()) for name in self._hiddenTemps])
+		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(Temperatures.sensorNames.index(name), activeButton.isChecked()) for name in self._hiddenTemps])
 		activeButton.setChecked(True)
 		
 		tpfcGB = QGroupBox('TPFanControl')
@@ -87,12 +97,12 @@ class TPFCWindow(QWidget):
 		biosModeButton = QRadioButton('BIOS')
 		modeOptionsLayout.addWidget(biosModeButton)
 		fanButtonsGroup.addButton(biosModeButton)
-		biosModeButton.clicked.connect(lambda: self.changeFanMode('auto'))
+		biosModeButton.clicked.connect(lambda: self.setFanMode('auto'))
 		
 		smartModeButton = QRadioButton('Smart')
 		modeOptionsLayout.addWidget(smartModeButton)
 		fanButtonsGroup.addButton(smartModeButton)
-		smartModeButton.clicked.connect(lambda: self.changeFanMode('auto'))
+		smartModeButton.clicked.connect(lambda: self.setFanMode('auto'))
 
 		manualModeLayout = QHBoxLayout()
 		modeOptionsLayout.addLayout(manualModeLayout)
@@ -100,17 +110,16 @@ class TPFCWindow(QWidget):
 		manualModeButton = QRadioButton('Manual')
 		manualModeLayout.addWidget(manualModeButton)
 		fanButtonsGroup.addButton(manualModeButton)
-		manualModeButton.clicked.connect(lambda: self.changeFanMode(manualModeCombo.currentText()))
+		manualModeButton.clicked.connect(lambda: self.setFanMode(manualModeCombo.currentText()))
 		
 		manualModeCombo = QComboBox()
 		manualModeLayout.addWidget(manualModeCombo)
 		for speed in [str(speed) for speed in range(8)] + ['disengaged']:
 			manualModeCombo.addItem(speed)
 		manualModeCombo.setCurrentIndex(8)
-		manualModeCombo.currentIndexChanged.connect(lambda: self.changeFanMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
+		manualModeCombo.currentIndexChanged.connect(lambda: self.setFanMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
 		
-		fan = self._readFan()
-		if fan['level'] == 'auto':
+		if self._fan.read()['level'] == 'auto':
 			biosModeButton.setChecked(True)
 		else:
 			smartModeButton.setChecked(True)
@@ -125,13 +134,12 @@ class TPFCWindow(QWidget):
 		trayIconMenu.addAction(self._restoreHideAction)
 		trayIconMenu.addAction(QAction('Quit', self, triggered = QCoreApplication.instance().quit))
 		
-		try:
-			f = open('/proc/acpi/ibm/fan', 'w')
-			f.close()
-		except IOError:
+		if not self._fan.isWritable():
 			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
 			for control in [biosModeButton, smartModeButton, manualModeButton, manualModeCombo]:
 				control.setEnabled(False)
+		
+		self.show()
 		
 		timer = QTimer(self)
 		timer.timeout.connect(self.update)
@@ -141,10 +149,7 @@ class TPFCWindow(QWidget):
 	
 	def setVisible(self, visible):
 		super().setVisible(visible)
-		try:
-			self._restoreHideAction.setText('Hide' if visible else 'Restore')
-		except AttributeError:
-			pass
+		self._restoreHideAction.setText('Hide' if visible else 'Restore')
 	
 	def toggleVisibility(self):
 		self.setVisible(not self.isVisible())
@@ -157,49 +162,21 @@ class TPFCWindow(QWidget):
 		self.updateTemps()
 		self.updateFanMode()
 	
-	def changeFanMode(self, mode):
-		f = open('/proc/acpi/ibm/fan', 'w')
-		f.write('level ' + mode)
-		f.close()
-		
+	def setFanMode(self, mode):
+		self._fan.setMode(mode)
 		self.updateFanMode()
 	
 	def updateTemps(self):
-		temps = self._readTemp()
-		for name in self._sensorNames:
+		temps = self._temperatures.read()
+		for name in Temperatures.sensorNames:
 			self._valueLabels[name].setText(str(temps[name]))
 		maxTemp = max((item for item in temps.items() if item[0] not in self._hiddenTemps), key = operator.itemgetter(1))
-		if self._systemTrayIcon.update(maxTemp[0], maxTemp[1], self._colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]]):
-			self.setWindowIcon(self._systemTrayIcon.icon())
+		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], self._colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 	
 	def updateFanMode(self):
-		fan = self._readFan()
+		fan = self._fan.read()
 		self._fanStateLabel.setText(fan['level'])
 		self._fanSpeedLabel.setText(fan['speed'])
-	
-	def _readAcpi(self, path):
-		f = open(path)
-		result = {pair[0][:pair[1]]: pair[0][pair[1] + 1:].strip() for pair in ((line, line.index(':')) for line in f)}
-		f.close()
-		return result
-	
-	def _readTemp(self):
-		return {name: int(temp) for (name, temp) in zip(self._sensorNames, self._readAcpi('/proc/acpi/ibm/thermal')['temperatures'].split())}
-	
-	def _readFan(self):
-		return self._readAcpi('/proc/acpi/ibm/fan')
-	
-	_sensorNames = ['cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr', 'xc3']
-	_hiddenTemps = set(['no5', 'x7d', 'x7f', 'xc3'])
-	_levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
-	_colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
-	_colorTemps = sorted(_colors.keys())
-	_valueLabels = {}
-	
-	_fanStateLabel = None
-	_fanSpeedLabel = None
-	_systemTrayIcon = None
-	_restoreHideAction = None
 
 class TPFCTrayIcon(QSystemTrayIcon):
 	def __init__(self, parent):
@@ -211,16 +188,16 @@ class TPFCTrayIcon(QSystemTrayIcon):
 	def update(self, name, temp, color):
 		if self._iconEngine.update(name, temp, color):
 			self.setIcon(self.icon())
-			return True
-		
-		else:
-			return False
-	
-	_iconEngine = None
+			self.parent().setWindowIcon(self.icon())
 
 class TPFCIconEngine(QIconEngineV2):
 	def __init__(self):
 		super().__init__()
+		
+		self._name = None
+		self._temp = None
+		self._fontSizes = {}
+		
 		self._backgroundBrush = QBrush()
 		self._backgroundBrush.setStyle(Qt.SolidPattern)
 	
@@ -269,11 +246,6 @@ class TPFCIconEngine(QIconEngineV2):
 		
 		else:
 			return False
-	
-	_name = None
-	_temp = None
-	_backgroundBrush = None
-	_fontSizes = {}
 
 def main():
 	app = QApplication(sys.argv)
