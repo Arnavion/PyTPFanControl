@@ -150,6 +150,8 @@ class TPFCWindow(QWidget):
 	def setVisible(self, visible):
 		super().setVisible(visible)
 		self._restoreHideAction.setText('Hide' if visible else 'Restore')
+		if visible and self.windowState() == Qt.WindowMinimized:
+			self.setWindowState(Qt.WindowNoState)
 	
 	def toggleVisibility(self):
 		self.setVisible(not self.isVisible())
