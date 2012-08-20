@@ -19,7 +19,7 @@ class Temperatures(ACPI):
 	def read(self):
 		return {name: int(temp) for (name, temp) in zip(Temperatures.sensorNames, super().read()['temperatures'].split())}
 	
-	sensorNames = ['cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr', 'xc3']
+	sensorNames = ('cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr', 'xc3')
 
 class Fan(ACPI):
 	def __init__(self):
