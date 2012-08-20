@@ -242,8 +242,7 @@ class TPFCIconEngine(QIconEngineV2):
 			return False
 
 def main():
-	app = QApplication(sys.argv)
-	QApplication.setQuitOnLastWindowClosed(False)
+	app = QApplication(sys.argv, quitOnLastWindowClosed = False)
 	TPFCWindow()
 	sys.exit(app.exec_())
 
