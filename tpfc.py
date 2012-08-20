@@ -13,7 +13,7 @@ class TPFCWindow(QWidget):
 	def __init__(self):
 		super().__init__()
 		
-		self._hiddenTemps = set(['no5', 'x7d', 'x7f', 'xc3'])
+		self._hiddenTemps = set(('no5', 'x7d', 'x7f', 'xc3'))
 		self._levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
 		self._colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
 		self._colorTemps = sorted(self._colors.keys())
@@ -94,23 +94,20 @@ class TPFCWindow(QWidget):
 		modeLayout.addLayout(modeOptionsLayout)
 		
 		fanButtonsGroup = QButtonGroup()
-		biosModeButton = QRadioButton('BIOS')
+		biosModeButton = QRadioButton('BIOS', clicked = lambda: self.setFanMode('auto'))
 		modeOptionsLayout.addWidget(biosModeButton)
 		fanButtonsGroup.addButton(biosModeButton)
-		biosModeButton.clicked.connect(lambda: self.setFanMode('auto'))
 		
-		smartModeButton = QRadioButton('Smart')
+		smartModeButton = QRadioButton('Smart', clicked = lambda: self.setFanMode('auto'))
 		modeOptionsLayout.addWidget(smartModeButton)
 		fanButtonsGroup.addButton(smartModeButton)
-		smartModeButton.clicked.connect(lambda: self.setFanMode('auto'))
 
 		manualModeLayout = QHBoxLayout()
 		modeOptionsLayout.addLayout(manualModeLayout)
 		
-		manualModeButton = QRadioButton('Manual')
+		manualModeButton = QRadioButton('Manual', clicked = lambda: self.setFanMode(manualModeCombo.currentText()))
 		manualModeLayout.addWidget(manualModeButton)
 		fanButtonsGroup.addButton(manualModeButton)
-		manualModeButton.clicked.connect(lambda: self.setFanMode(manualModeCombo.currentText()))
 		
 		manualModeCombo = QComboBox()
 		manualModeLayout.addWidget(manualModeCombo)
@@ -144,7 +141,7 @@ class TPFCWindow(QWidget):
 		
 		if not self._fan.isWritable():
 			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
-			for control in [biosModeButton, smartModeButton, manualModeButton, manualModeCombo]:
+			for control in (biosModeButton, smartModeButton, manualModeButton, manualModeCombo):
 				control.setEnabled(False)
 	
 	def setVisible(self, visible):
@@ -252,7 +249,7 @@ class TPFCIconEngine(QIconEngineV2):
 def main():
 	app = QApplication(sys.argv)
 	QApplication.setQuitOnLastWindowClosed(False)
-	w = TPFCWindow()
+	TPFCWindow()
 	sys.exit(app.exec_())
 
 if __name__ == '__main__':
