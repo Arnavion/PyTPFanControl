@@ -11,7 +11,7 @@ from acpi import Temperatures, Fan, Battery
 
 class TPFCWindow(QWidget):
 	def __init__(self):
-		super().__init__()
+		super().__init__(windowTitle = 'TPFanControl')
 		
 		self._hiddenTemps = set(('no5', 'x7d', 'x7f', 'xc3'))
 		self._levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
@@ -24,8 +24,6 @@ class TPFCWindow(QWidget):
 		if Battery().read()['present'] == 'no':
 			self._hiddenTemps.add('bat')
 		
-		self.setWindowTitle('TPFanControl')
-		
 		mainLayout = QHBoxLayout()
 		self.setLayout(mainLayout)
 		
@@ -35,13 +33,10 @@ class TPFCWindow(QWidget):
 		tempsLayout = QVBoxLayout()
 		tempsGB.setLayout(tempsLayout)
 		
-		tempsTable = QTableWidget(len(Temperatures.sensorNames), 3)
+		tempsTable = QTableWidget(len(Temperatures.sensorNames), 3, focusPolicy = Qt.NoFocus, selectionMode = QTableWidget.NoSelection, showGrid = False)
 		tempsLayout.addWidget(tempsTable)
 		tempsTable.horizontalHeader().hide()
 		tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
-		tempsTable.setFocusPolicy(Qt.NoFocus)
-		tempsTable.setSelectionMode(QTableWidget.NoSelection)
-		tempsTable.setShowGrid(False)
 		
 		self._valueLabels = {}
 		for (i, name) in enumerate(Temperatures.sensorNames):
