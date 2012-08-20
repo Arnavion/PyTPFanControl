@@ -134,11 +134,6 @@ class TPFCWindow(QWidget):
 		trayIconMenu.addAction(self._restoreHideAction)
 		trayIconMenu.addAction(QAction('Quit', self, triggered = QCoreApplication.instance().quit))
 		
-		if not self._fan.isWritable():
-			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
-			for control in [biosModeButton, smartModeButton, manualModeButton, manualModeCombo]:
-				control.setEnabled(False)
-		
 		self.show()
 		
 		timer = QTimer(self)
@@ -146,6 +141,11 @@ class TPFCWindow(QWidget):
 		timer.start(5000)
 		
 		self.update()
+		
+		if not self._fan.isWritable():
+			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
+			for control in [biosModeButton, smartModeButton, manualModeButton, manualModeCombo]:
+				control.setEnabled(False)
 	
 	def setVisible(self, visible):
 		super().setVisible(visible)
