@@ -161,7 +161,6 @@ class TPFCWindow(QWidget):
 		maxTemp = self.updateTemps()
 		if self._smartMode:
 			newFanLevel = Settings.levels[self._levelTemps[bisect.bisect_left(self._levelTemps, maxTemp) - 1]]
-			print(newFanLevel)
 			self.setFanLevel(newFanLevel)
 		
 		self.updateFan()
