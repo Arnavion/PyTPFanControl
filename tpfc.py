@@ -9,20 +9,25 @@ from PySide.QtGui import *
 
 from acpi import Temperatures, Fan, Battery
 
+class Settings:
+	hiddenTemps = set(('no5', 'x7d', 'x7f', 'xc3'))
+	levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
+	colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
+
 class TPFCWindow(QWidget):
 	def __init__(self):
 		super().__init__(windowTitle = 'TPFanControl')
 		
-		self._hiddenTemps = set(('no5', 'x7d', 'x7f', 'xc3'))
-		self._levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
-		self._colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
-		self._colorTemps = sorted(self._colors.keys())
+		self._levelTemps = sorted(Settings.levels.keys())
+		self._colorTemps = sorted(Settings.colors.keys())
 		
 		self._temperatures = Temperatures()
 		self._fan = Fan()
 		
+		self._smartMode = False
+		
 		if Battery().read()['present'] == 'no':
-			self._hiddenTemps.add('bat')
+			Settings.hiddenTemps.add('bat')
 		
 		mainLayout = QHBoxLayout()
 		self.setLayout(mainLayout)
@@ -56,7 +61,7 @@ class TPFCWindow(QWidget):
 		
 		activeButton = QRadioButton('active')
 		visibleTempsLayout.addWidget(activeButton)
-		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(Temperatures.sensorNames.index(name), activeButton.isChecked()) for name in self._hiddenTemps])
+		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(Temperatures.sensorNames.index(name), activeButton.isChecked()) for name in Settings.hiddenTemps])
 		activeButton.setChecked(True)
 		
 		tpfcGB = QGroupBox('TPFanControl')
@@ -89,18 +94,18 @@ class TPFCWindow(QWidget):
 		modeLayout.addLayout(modeOptionsLayout)
 		
 		fanButtonsGroup = QButtonGroup()
-		biosModeButton = QRadioButton('BIOS', clicked = lambda: self.setFanMode('auto'))
+		biosModeButton = QRadioButton('BIOS', clicked = self.enableBIOSMode)
 		modeOptionsLayout.addWidget(biosModeButton)
 		fanButtonsGroup.addButton(biosModeButton)
 		
-		smartModeButton = QRadioButton('Smart', clicked = lambda: self.setFanMode('auto'))
+		smartModeButton = QRadioButton('Smart', clicked = self.enableSmartMode)
 		modeOptionsLayout.addWidget(smartModeButton)
 		fanButtonsGroup.addButton(smartModeButton)
 
 		manualModeLayout = QHBoxLayout()
 		modeOptionsLayout.addLayout(manualModeLayout)
 		
-		manualModeButton = QRadioButton('Manual', clicked = lambda: self.setFanMode(manualModeCombo.currentText()))
+		manualModeButton = QRadioButton('Manual', clicked = lambda: self.enableManualMode(manualModeCombo.currentText()))
 		manualModeLayout.addWidget(manualModeButton)
 		fanButtonsGroup.addButton(manualModeButton)
 		
@@ -109,7 +114,7 @@ class TPFCWindow(QWidget):
 		for speed in [str(speed) for speed in range(8)] + ['disengaged']:
 			manualModeCombo.addItem(speed)
 		manualModeCombo.setCurrentIndex(8)
-		manualModeCombo.currentIndexChanged.connect(lambda: self.setFanMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
+		manualModeCombo.currentIndexChanged.connect(lambda: self.enableManualMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
 		
 		if self._fan.read()['level'] == 'auto':
 			biosModeButton.setChecked(True)
@@ -153,21 +158,38 @@ class TPFCWindow(QWidget):
 		event.ignore()
 	
 	def update(self):
-		self.updateTemps()
-		self.updateFanMode()
+		maxTemp = self.updateTemps()
+		if self._smartMode:
+			newFanLevel = Settings.levels[self._levelTemps[bisect.bisect_left(self._levelTemps, maxTemp) - 1]]
+			print(newFanLevel)
+			self.setFanLevel(newFanLevel)
+		
+		self.updateFan()
 	
-	def setFanMode(self, mode):
-		self._fan.setMode(mode)
-		self.updateFanMode()
+	def enableBIOSMode(self):
+		self._smartMode = False
+		self.setFanLevel('auto')
+	
+	def enableSmartMode(self):
+		self._smartMode = True
+	
+	def enableManualMode(self, newLevel):
+		self._smartMode = False
+		self.setFanLevel(newLevel)
+	
+	def setFanLevel(self, level):
+		self._fan.setLevel(level)
+		self.updateFan()
 	
 	def updateTemps(self):
 		temps = self._temperatures.read()
 		for name in Temperatures.sensorNames:
 			self._valueLabels[name].setText(str(temps[name]))
-		maxTemp = max((item for item in temps.items() if item[0] not in self._hiddenTemps), key = operator.itemgetter(1))
-		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], self._colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
+		maxTemp = max((item for item in temps.items() if item[0] not in Settings.hiddenTemps), key = operator.itemgetter(1))
+		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
+		return maxTemp[1]
 	
-	def updateFanMode(self):
+	def updateFan(self):
 		fan = self._fan.read()
 		self._fanStateLabel.setText(fan['level'])
 		self._fanSpeedLabel.setText(fan['speed'])

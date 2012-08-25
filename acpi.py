@@ -33,9 +33,9 @@ class Fan(ACPI):
 		except IOError:
 			return False
 	
-	def setMode(self, mode):
+	def setLevel(self, level):
 		f = open(self._path, 'w')
-		f.write('level ' + mode)
+		f.write('level ' + level)
 		f.close()
 
 class Battery(ACPI):
