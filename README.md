@@ -11,8 +11,8 @@ This will run the script with superuser rights, so you can also set the fan spee
 
 ### Requirements
 - thinkpad-acpi in your kernel
-- PySide
+- PySide compiled for Python3
 
 ### Notes
 - The script currently has the names of sensors hard-coded to work for the T61.
-- SMART mode (custom fan speeds according to temperature) isn't implemented yet, but manual mode is.
+- SMART mode (custom fan speeds according to temperature) is incomplete. The current implementation changes fan speed based only on the current temperature, so the fan speed will fluctuate more.
