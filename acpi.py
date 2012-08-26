@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sys
+from settings import Settings
 
 class ACPI:
 	def __init__(self, path):
@@ -17,9 +18,7 @@ class Temperatures(ACPI):
 		super().__init__('/proc/acpi/ibm/thermal')
 	
 	def read(self):
-		return {name: int(temp) for (name, temp) in zip(Temperatures.sensorNames, super().read()['temperatures'].split())}
-	
-	sensorNames = ('cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr', 'xc3')
+		return {name: int(temp) for (name, temp) in zip(Settings.sensorNames, super().read()['temperatures'].split())}
 
 class Fan(ACPI):
 	def __init__(self):

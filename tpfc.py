@@ -8,11 +8,7 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 
 from acpi import Temperatures, Fan, Battery
-
-class Settings:
-	hiddenTemps = set(('no5', 'x7d', 'x7f', 'xc3'))
-	levels = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
-	colors = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
+from settings import Settings
 
 class TPFCWindow(QWidget):
 	def __init__(self):
@@ -38,13 +34,13 @@ class TPFCWindow(QWidget):
 		tempsLayout = QVBoxLayout()
 		tempsGB.setLayout(tempsLayout)
 		
-		tempsTable = QTableWidget(len(Temperatures.sensorNames), 3, focusPolicy = Qt.NoFocus, selectionMode = QTableWidget.NoSelection, showGrid = False)
+		tempsTable = QTableWidget(len(Settings.sensorNames), 3, focusPolicy = Qt.NoFocus, selectionMode = QTableWidget.NoSelection, showGrid = False)
 		tempsLayout.addWidget(tempsTable)
 		tempsTable.horizontalHeader().hide()
 		tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
 		
 		self._valueLabels = {}
-		for (i, name) in enumerate(Temperatures.sensorNames):
+		for (i, name) in enumerate(Settings.sensorNames):
 			tempsTable.setItem(i, 0, QTableWidgetItem(name))
 			
 			tempLabel = QTableWidgetItem()
@@ -61,7 +57,7 @@ class TPFCWindow(QWidget):
 		
 		activeButton = QRadioButton('active')
 		visibleTempsLayout.addWidget(activeButton)
-		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(Temperatures.sensorNames.index(name), activeButton.isChecked()) for name in Settings.hiddenTemps])
+		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(Settings.sensorNames.index(name), activeButton.isChecked()) for name in Settings.hiddenTemps])
 		activeButton.setChecked(True)
 		
 		tpfcGB = QGroupBox('TPFanControl')
@@ -182,7 +178,7 @@ class TPFCWindow(QWidget):
 	
 	def updateTemps(self):
 		temps = self._temperatures.read()
-		for name in Temperatures.sensorNames:
+		for name in Settings.sensorNames:
 			self._valueLabels[name].setText(str(temps[name]))
 		maxTemp = max((item for item in temps.items() if item[0] not in Settings.hiddenTemps), key = operator.itemgetter(1))
 		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
