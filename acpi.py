@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sys
+
 from settings import Settings
 
 class ACPI:
@@ -9,7 +10,7 @@ class ACPI:
 	
 	def read(self):
 		f = open(self._path)
-		result = {pair[0][:pair[1]]: pair[0][pair[1] + 1:].strip() for pair in ((line, line.index(':')) for line in f)}
+		result = {parts[0]: parts[2].strip() for parts in (line.partition(':') for line in f)}
 		f.close()
 		return result
 
