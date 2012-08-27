@@ -17,12 +17,9 @@ class TPFCWindow(QWidget):
 		self._levelTemps = sorted(Settings.levels.keys())
 		self._colorTemps = sorted(Settings.colors.keys())
 		
-		self._temperatures = Temperatures()
-		self._fan = Fan()
-		
 		self._smartMode = False
 		
-		if Battery().read()['present'] == 'no':
+		if not Battery.isPluggedIn():
 			Settings.hiddenTemps.add('bat')
 		
 		mainLayout = QHBoxLayout()
@@ -112,7 +109,7 @@ class TPFCWindow(QWidget):
 		manualModeCombo.setCurrentIndex(8)
 		manualModeCombo.currentIndexChanged.connect(lambda: self.enableManualMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
 		
-		if self._fan.read()['level'] == 'auto':
+		if Fan.read()['level'] == 'auto':
 			biosModeButton.setChecked(True)
 		else:
 			smartModeButton.setChecked(True)
@@ -135,7 +132,7 @@ class TPFCWindow(QWidget):
 		
 		self.update()
 		
-		if not self._fan.isWritable():
+		if not Fan.isWritable():
 			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
 			for control in (biosModeButton, smartModeButton, manualModeButton, manualModeCombo):
 				control.setEnabled(False)
@@ -173,11 +170,11 @@ class TPFCWindow(QWidget):
 		self.setFanLevel(newLevel)
 	
 	def setFanLevel(self, level):
-		self._fan.setLevel(level)
+		Fan.setLevel(level)
 		self.updateFan()
 	
 	def updateTemps(self):
-		temps = self._temperatures.read()
+		temps = Temperatures.read()
 		for name in Settings.sensorNames:
 			self._valueLabels[name].setText(str(temps.get(name, 'n/a')))
 		maxTemp = max((item for item in temps.items() if item[0] not in Settings.hiddenTemps), key = operator.itemgetter(1))
@@ -185,11 +182,11 @@ class TPFCWindow(QWidget):
 		return maxTemp[1]
 	
 	def updateFan(self):
-		fan = self._fan.read()
+		fan = Fan.read()
 		self._fanStateLabel.setText(fan['level'])
 		self._fanSpeedLabel.setText(fan['speed'])
 		if fan['level'] != 'auto':
-			self._fan.setLevel(fan['level'])
+			Fan.setLevel(fan['level'])
 
 class TPFCTrayIcon(QSystemTrayIcon):
 	def __init__(self, parent):

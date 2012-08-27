@@ -1,4 +1,4 @@
-PyTPFanControl is a Linux clone of troubadix's TPFanControl. It uses the sysfs/procfs interface exposed by the thinkpad-acpi kernel module to allow you to monitor and control the temperature and fan speeds of your Thinkpad.
+PyTPFanControl is a Linux clone of troubadix's TPFanControl. It uses the sysfs interface exposed by the thinkpad-acpi kernel module to allow you to monitor and control the temperature and fan speeds of your Thinkpad.
 
 ### Usage
     /path/to/tpfc.py

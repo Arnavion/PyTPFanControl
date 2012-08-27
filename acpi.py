@@ -1,22 +1,16 @@
 #!/usr/bin/python3
 
 import errno
+import os
 import sys
 
 from settings import Settings
 
 class ACPI:
-	def __init__(self, path):
-		self._path = path
-	
-	def read(self):
-		with open(self._path) as f:
-			return {parts[0]: parts[2].strip() for parts in (line.partition(':') for line in f)}
-	
 	hwmonPath = '/sys/devices/platform/thinkpad_hwmon/'
 
 class Temperatures:
-	def read(self):
+	def read():
 		result = {}
 		for (i, name) in enumerate(Settings.sensorNames):
 			try:
@@ -29,19 +23,7 @@ class Temperatures:
 		return result
 
 class Fan:
-	def __init__(self):
-		try:
-			with open(Fan._pwmEnablePath, 'w'):
-				self._isWritable = True
-				with open(Fan._watchdogPath, 'w') as f:
-					f.write(str(Settings.updateInterval * 2))
-		except IOError as e:
-			if e.errno == errno.EACCES:
-				self._isWritable = False
-			else:
-				raise
-	
-	def read(self):
+	def read():
 		result = {}
 		
 		with open(Fan._fanInputPath) as f:
@@ -61,11 +43,11 @@ class Fan:
 		
 		return result
 	
-	def isWritable(self):
-		return self._isWritable
+	def isWritable():
+		return Fan._isWritable
 	
-	def setLevel(self, level):
-		if self._isWritable:
+	def setLevel(level):
+		if Fan._isWritable:
 			if level == 'auto':
 				with open(Fan._pwmEnablePath, 'w') as f:
 					f.write('2')
@@ -86,7 +68,18 @@ class Fan:
 	_watchdogPath = ACPI.hwmonPath + 'driver/fan_watchdog'
 	_firmwareToHwmon = {str(i): str(level) for (i, level) in enumerate((0, 36, 72, 109, 145, 182, 218, 255))}
 	_hwmonToFirmware = {v: k for (k, v) in _firmwareToHwmon.items()}
+	
+	try:
+		with open(_pwmEnablePath, 'w'):
+			_isWritable = True
+			with open(_watchdogPath, 'w') as f:
+				f.write(str(Settings.updateInterval * 2))
+	except IOError as e:
+		if e.errno == errno.EACCES:
+			_isWritable = False
+		else:
+			raise
 
-class Battery(ACPI):
-	def __init__(self):
-		super().__init__('/proc/acpi/battery/BAT0/state')
+class Battery:
+	def isPluggedIn():
+		return os.path.isdir('/sys/class/power_supply/BAT0')
