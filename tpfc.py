@@ -107,7 +107,7 @@ class TPFCWindow(QWidget):
 		
 		manualModeCombo = QComboBox()
 		manualModeLayout.addWidget(manualModeCombo)
-		for speed in [str(speed) for speed in range(8)] + ['disengaged']:
+		for speed in [str(speed) for speed in range(8)] + ['full-speed']:
 			manualModeCombo.addItem(speed)
 		manualModeCombo.setCurrentIndex(8)
 		manualModeCombo.currentIndexChanged.connect(lambda: self.enableManualMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
@@ -131,7 +131,7 @@ class TPFCWindow(QWidget):
 		
 		timer = QTimer(self)
 		timer.timeout.connect(self.update)
-		timer.start(5000)
+		timer.start(Settings.updateInterval * 1000)
 		
 		self.update()
 		
@@ -179,7 +179,7 @@ class TPFCWindow(QWidget):
 	def updateTemps(self):
 		temps = self._temperatures.read()
 		for name in Settings.sensorNames:
-			self._valueLabels[name].setText(str(temps[name]))
+			self._valueLabels[name].setText(str(temps.get(name, 'n/a')))
 		maxTemp = max((item for item in temps.items() if item[0] not in Settings.hiddenTemps), key = operator.itemgetter(1))
 		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 		return maxTemp[1]
@@ -188,6 +188,8 @@ class TPFCWindow(QWidget):
 		fan = self._fan.read()
 		self._fanStateLabel.setText(fan['level'])
 		self._fanSpeedLabel.setText(fan['speed'])
+		if fan['level'] != 'auto':
+			self._fan.setLevel(fan['level'])
 
 class TPFCTrayIcon(QSystemTrayIcon):
 	def __init__(self, parent):
