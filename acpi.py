@@ -1,20 +1,19 @@
 #!/usr/bin/python3
 
 import errno
-import os
 import sys
 
 from settings import Settings
 
 class ACPI:
-	hwmonPath = '/sys/devices/platform/thinkpad_hwmon/'
+	HWMON_PATH = '/sys/devices/platform/thinkpad_hwmon/'
 
 class Temperatures:
 	def read():
 		result = {}
-		for (i, name) in enumerate(Settings.sensorNames):
+		for (i, name) in enumerate(Settings.SENSOR_NAMES):
 			try:
-				with open(ACPI.hwmonPath + '/temp%s_input' % (i + 1)) as f:
+				with open(ACPI.HWMON_PATH + '/temp%s_input' % (i + 1)) as f:
 					result[name] = int(f.read().rstrip()) // 1000
 			except IOError as e:
 				if e.errno != errno.ENXIO:
@@ -26,17 +25,17 @@ class Fan:
 	def read():
 		result = {}
 		
-		with open(Fan._fanInputPath) as f:
+		with open(Fan.FAN_INPUT_PATH) as f:
 			result['speed'] = f.read().rstrip()
 		
-		with open(Fan._pwmEnablePath) as f:
+		with open(Fan.PWM_ENABLE_PATH) as f:
 			pwmMode = f.read().rstrip()
 			if pwmMode == '0':
 				result['level'] = 'full-speed'
 			
 			elif pwmMode == '1':
-				with open(Fan._pwmPath) as f2:
-					result['level'] = Fan._hwmonToFirmware[f2.read().rstrip()]
+				with open(Fan.PWM_PATH) as f2:
+					result['level'] = Fan.HWMON_TO_FIRMWARE[f2.read().rstrip()]
 			
 			elif pwmMode == '2':
 				result['level'] = 'auto'
@@ -49,37 +48,33 @@ class Fan:
 	def setLevel(level):
 		if Fan._isWritable:
 			if level == 'auto':
-				with open(Fan._pwmEnablePath, 'w') as f:
+				with open(Fan.PWM_ENABLE_PATH, 'w') as f:
 					f.write('2')
 			
 			elif level == 'full-speed':
-				with open(Fan._pwmEnablePath, 'w') as f:
+				with open(Fan.PWM_ENABLE_PATH, 'w') as f:
 					f.write('0')
 			
 			else:
-				with open(Fan._pwmEnablePath, 'w') as f:
+				with open(Fan.PWM_ENABLE_PATH, 'w') as f:
 					f.write('1')
-				with open(Fan._pwmPath, 'w') as f:
-					f.write(Fan._firmwareToHwmon[level])
+				with open(Fan.PWM_PATH, 'w') as f:
+					f.write(Fan.FIRMWARE_TO_HWMON[level])
 	
-	_fanInputPath = ACPI.hwmonPath + 'fan1_input'
-	_pwmEnablePath = ACPI.hwmonPath + 'pwm1_enable'
-	_pwmPath = ACPI.hwmonPath + 'pwm1'
-	_watchdogPath = ACPI.hwmonPath + 'driver/fan_watchdog'
-	_firmwareToHwmon = {str(i): str(level) for (i, level) in enumerate((0, 36, 72, 109, 145, 182, 218, 255))}
-	_hwmonToFirmware = {v: k for (k, v) in _firmwareToHwmon.items()}
+	FAN_INPUT_PATH = ACPI.HWMON_PATH + 'fan1_input'
+	PWM_ENABLE_PATH = ACPI.HWMON_PATH + 'pwm1_enable'
+	PWM_PATH = ACPI.HWMON_PATH + 'pwm1'
+	WATCHDOG_PATH = ACPI.HWMON_PATH + 'driver/fan_watchdog'
+	FIRMWARE_TO_HWMON = {str(i): str(level) for (i, level) in enumerate((0, 36, 72, 109, 145, 182, 218, 255))}
+	HWMON_TO_FIRMWARE = {v: k for (k, v) in FIRMWARE_TO_HWMON.items()}
 	
 	try:
-		with open(_pwmEnablePath, 'w'):
+		with open(PWM_ENABLE_PATH, 'w'):
 			_isWritable = True
-			with open(_watchdogPath, 'w') as f:
-				f.write(str(Settings.updateInterval * 2))
+			with open(WATCHDOG_PATH, 'w') as f:
+				f.write(str(Settings.UPDATE_INTERVAL * 2))
 	except IOError as e:
 		if e.errno == errno.EACCES:
 			_isWritable = False
 		else:
 			raise
-
-class Battery:
-	def isPluggedIn():
-		return os.path.isdir('/sys/class/power_supply/BAT0')

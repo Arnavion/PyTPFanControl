@@ -7,20 +7,17 @@ import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
 
-from acpi import Temperatures, Fan, Battery
+from acpi import Temperatures, Fan
 from settings import Settings
 
 class TPFCWindow(QWidget):
 	def __init__(self):
 		super().__init__(windowTitle = 'TPFanControl')
 		
-		self._levelTemps = sorted(Settings.levels.keys())
-		self._colorTemps = sorted(Settings.colors.keys())
+		self._levelTemps = sorted(Settings.LEVELS.keys())
+		self._colorTemps = sorted(Settings.COLORS.keys())
 		
 		self._smartMode = False
-		
-		if not Battery.isPluggedIn():
-			Settings.hiddenTemps.add('bat')
 		
 		mainLayout = QHBoxLayout()
 		self.setLayout(mainLayout)
@@ -31,13 +28,13 @@ class TPFCWindow(QWidget):
 		tempsLayout = QVBoxLayout()
 		tempsGB.setLayout(tempsLayout)
 		
-		tempsTable = QTableWidget(len(Settings.sensorNames), 3, focusPolicy = Qt.NoFocus, selectionMode = QTableWidget.NoSelection, showGrid = False)
+		tempsTable = QTableWidget(len(Settings.SENSOR_NAMES), 3, focusPolicy = Qt.NoFocus, selectionMode = QTableWidget.NoSelection, showGrid = False)
 		tempsLayout.addWidget(tempsTable)
 		tempsTable.horizontalHeader().hide()
 		tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
 		
 		self._valueLabels = {}
-		for (i, name) in enumerate(Settings.sensorNames):
+		for (i, name) in enumerate(Settings.SENSOR_NAMES):
 			tempsTable.setItem(i, 0, QTableWidgetItem(name))
 			
 			tempLabel = QTableWidgetItem()
@@ -54,7 +51,7 @@ class TPFCWindow(QWidget):
 		
 		activeButton = QRadioButton('active')
 		visibleTempsLayout.addWidget(activeButton)
-		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(Settings.sensorNames.index(name), activeButton.isChecked()) for name in Settings.hiddenTemps])
+		activeButton.toggled.connect(lambda: [tempsTable.setRowHidden(Settings.SENSOR_NAMES.index(name), activeButton.isChecked()) for name in Settings.HIDDEN_TEMPS])
 		activeButton.setChecked(True)
 		
 		tpfcGB = QGroupBox('TPFanControl')
@@ -104,9 +101,10 @@ class TPFCWindow(QWidget):
 		
 		manualModeCombo = QComboBox()
 		manualModeLayout.addWidget(manualModeCombo)
-		for speed in [str(speed) for speed in range(8)] + ['full-speed']:
+		for speed in sorted(Fan.FIRMWARE_TO_HWMON):
 			manualModeCombo.addItem(speed)
-		manualModeCombo.setCurrentIndex(8)
+		manualModeCombo.addItem('full-speed')
+		manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
 		manualModeCombo.currentIndexChanged.connect(lambda: self.enableManualMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
 		
 		if Fan.read()['level'] == 'auto':
@@ -128,7 +126,7 @@ class TPFCWindow(QWidget):
 		
 		timer = QTimer(self)
 		timer.timeout.connect(self.update)
-		timer.start(Settings.updateInterval * 1000)
+		timer.start(Settings.UPDATE_INTERVAL * 1000)
 		
 		self.update()
 		
@@ -153,7 +151,7 @@ class TPFCWindow(QWidget):
 	def update(self):
 		maxTemp = self.updateTemps()
 		if self._smartMode:
-			newFanLevel = Settings.levels[self._levelTemps[bisect.bisect_left(self._levelTemps, maxTemp) - 1]]
+			newFanLevel = Settings.LEVELS[self._levelTemps[bisect.bisect_left(self._levelTemps, maxTemp) - 1]]
 			self.setFanLevel(newFanLevel)
 		
 		self.updateFan()
@@ -175,10 +173,10 @@ class TPFCWindow(QWidget):
 	
 	def updateTemps(self):
 		temps = Temperatures.read()
-		for name in Settings.sensorNames:
+		for name in Settings.SENSOR_NAMES:
 			self._valueLabels[name].setText(str(temps.get(name, 'n/a')))
-		maxTemp = max((item for item in temps.items() if item[0] not in Settings.hiddenTemps), key = operator.itemgetter(1))
-		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.colors[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
+		maxTemp = max((item for item in temps.items() if item[0] not in Settings.HIDDEN_TEMPS), key = operator.itemgetter(1))
+		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 		return maxTemp[1]
 	
 	def updateFan(self):
@@ -231,10 +229,7 @@ class TPFCIconEngine(QIconEngineV2):
 			font = painter.font()
 			fontSize = None
 			text = self._name + '\n' + str(self._temp)
-			try:
-				fontSize = self._fontSizes[rect]
-			except KeyError:
-				fontSize = rect.height()
+			fontSize = self._fontSizes.get(rect, rect.height())
 			while True:
 				font.setPointSize(fontSize)
 				painter.setFont(font)
