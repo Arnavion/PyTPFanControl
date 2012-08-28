@@ -10,6 +10,7 @@ class Settings:
 	COLORS = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: Qt.GlobalColor.magenta, 90: Qt.GlobalColor.red}
 	LEVELS = {45: '0', 55: '1', 65: '3', 80: '7', 90: 'disengaged'}
 	UPDATE_INTERVAL = 5
+	FAHRENHEIT_OUTPUT = False
 	
 	if not os.path.isdir('/sys/class/power_supply/BAT0'):
 		HIDDEN_TEMPS.add('bat')

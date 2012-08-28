@@ -174,7 +174,7 @@ class TPFCWindow(QWidget):
 	def updateTemps(self):
 		temps = Temperatures.read()
 		for name in Settings.SENSOR_NAMES:
-			self._valueLabels[name].setText(str(temps.get(name, 'n/a')))
+			self._valueLabels[name].setText(Temperatures.toDisplayTemp(temps.get(name, 'n/a')))
 		maxTemp = max((item for item in temps.items() if item[0] not in Settings.HIDDEN_TEMPS), key = operator.itemgetter(1))
 		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 		return maxTemp[1]
@@ -223,12 +223,15 @@ class TPFCIconEngine(QIconEngineV2):
 				painter.drawText(rect, '\u2588') # █
 				pen.setColor(penColor)
 				painter.setPen(pen)
+			
 			else: # task manager / task switcher icons; fillRect works
 				painter.setBackground(self._backgroundBrush)
 				painter.eraseRect(rect)
 			font = painter.font()
 			fontSize = None
-			text = self._name + '\n' + str(self._temp)
+			
+			text = self._name + '\n' + Temperatures.toDisplayTemp(self._temp)
+			
 			fontSize = self._fontSizes.get(rect, rect.height())
 			while True:
 				font.setPointSize(fontSize)
@@ -239,6 +242,7 @@ class TPFCIconEngine(QIconEngineV2):
 					break
 				else:
 					fontSize = fontSize - 1
+			
 			painter.drawText(rect, Qt.AlignCenter, text)
 	
 	def update(self, name, temp, color):

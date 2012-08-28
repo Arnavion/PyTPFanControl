@@ -21,6 +21,15 @@ class Temperatures:
 					raise
 		
 		return result
+	
+	def toDisplayTemp(temp):
+		if temp == 'n/a':
+			return temp
+		
+		if Settings.FAHRENHEIT_OUTPUT:
+			temp = temp * 9 // 5 + 32
+		
+		return str(temp)
 
 class Fan:
 	def read():
