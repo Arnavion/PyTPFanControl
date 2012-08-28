@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import collections
 import errno
 import sys
 
@@ -23,24 +24,22 @@ class Temperatures:
 
 class Fan:
 	def read():
-		result = {}
-		
 		with open(Fan.FAN_INPUT_PATH) as f:
-			result['speed'] = f.read().rstrip()
+			speed = f.read().rstrip()
 		
 		with open(Fan.PWM_ENABLE_PATH) as f:
 			pwmMode = f.read().rstrip()
 			if pwmMode == '0':
-				result['level'] = 'full-speed'
+				level = 'full-speed'
 			
 			elif pwmMode == '1':
 				with open(Fan.PWM_PATH) as f2:
-					result['level'] = Fan.HWMON_TO_FIRMWARE[f2.read().rstrip()]
+					level = Fan.HWMON_TO_FIRMWARE[f2.read().rstrip()]
 			
 			elif pwmMode == '2':
-				result['level'] = 'auto'
+				level = 'auto'
 		
-		return result
+		return Fan.FanResult(speed, level)
 	
 	def isWritable():
 		return Fan._isWritable
@@ -78,3 +77,5 @@ class Fan:
 			_isWritable = False
 		else:
 			raise
+	
+	FanResult = collections.namedtuple('FanResult', ['speed', 'level'])

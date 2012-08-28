@@ -107,7 +107,7 @@ class TPFCWindow(QWidget):
 		manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
 		manualModeCombo.currentIndexChanged.connect(lambda: self.enableManualMode(manualModeCombo.currentText()) if manualModeButton.isChecked() else None)
 		
-		if Fan.read()['level'] == 'auto':
+		if Fan.read().level == 'auto':
 			biosModeButton.setChecked(True)
 		else:
 			smartModeButton.setChecked(True)
@@ -181,10 +181,10 @@ class TPFCWindow(QWidget):
 	
 	def updateFan(self):
 		fan = Fan.read()
-		self._fanStateLabel.setText(fan['level'])
-		self._fanSpeedLabel.setText(fan['speed'])
-		if fan['level'] != 'auto':
-			Fan.setLevel(fan['level'])
+		self._fanStateLabel.setText(fan.level)
+		self._fanSpeedLabel.setText(fan.speed)
+		if fan.level != 'auto':
+			Fan.setLevel(fan.level)
 
 class TPFCTrayIcon(QSystemTrayIcon):
 	def __init__(self, parent):
