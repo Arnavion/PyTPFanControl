@@ -86,7 +86,7 @@ class TPFCWindow(QWidget):
 		
 		speedLayout.addWidget(QLabel('Speed'))
 		# Displays the speed of the fan
-		self._fanSpeedLabel = QLabel()
+		self._fanSpeedLabel = QLabel(alignment = Qt.AlignRight | Qt.AlignVCenter)
 		speedLayout.addWidget(self._fanSpeedLabel)
 		speedLayout.addWidget(QLabel('RPM'))
 		
