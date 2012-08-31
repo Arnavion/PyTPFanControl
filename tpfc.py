@@ -10,12 +10,13 @@ from PySide.QtUiTools import QUiLoader
 
 from acpi import Temperatures, Fan
 from settings import Settings
+import resources
 
 
 class TPFCUiLoader(QUiLoader):
 	def __init__(self):
 		# Create the application. The application will not close even if its windows are closed.
-		app = QApplication(sys.argv)#, quitOnLastWindowClosed = False)
+		app = QApplication(sys.argv)
 		
 		super().__init__()
 		self.registerCustomWidget(TPFCWindow)
@@ -27,7 +28,7 @@ class TPFCUiLoader(QUiLoader):
 		
 		self._smartMode = False
 		
-		f = QFile('tpfc.ui')
+		f = QFile(':/tpfc.ui')
 		f .open(QFile.ReadOnly)
 		self.load(f)
 		f.close()
