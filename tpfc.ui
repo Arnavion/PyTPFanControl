@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>window</class>
+ <widget class="TPFCWindow" name="window">
+  <property name="windowTitle">
+   <string>TPFanControl</string>
+  </property>
+  <layout class="QHBoxLayout" name="mainLayout">
+   <item>
+    <widget class="QGroupBox" name="tempsGB">
+     <property name="title">
+      <string>Temperatures</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <layout class="QVBoxLayout" name="tempsLayout">
+      <item>
+       <widget class="QTableWidget" name="tempsTable">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::NoSelection</enum>
+        </property>
+        <property name="showGrid">
+         <bool>false</bool>
+        </property>
+        <property name="columnCount">
+         <number>3</number>
+        </property>
+        <attribute name="horizontalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
+        <column/>
+        <column/>
+        <column/>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="visibleTempsLayout">
+        <item>
+         <widget class="QRadioButton" name="allButton">
+          <property name="text">
+           <string>all</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="activeButton">
+          <property name="text">
+           <string>active</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="tpfcGB">
+     <property name="title">
+      <string>TPFanControl</string>
+     </property>
+     <layout class="QVBoxLayout" name="tpfcLayout">
+      <item>
+       <layout class="QHBoxLayout" name="stateLayout">
+        <item>
+         <widget class="QLabel" name="fanStateCaptionLabel">
+          <property name="text">
+           <string>State</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="fanStateLabel"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="speedLayout">
+        <item>
+         <widget class="QLabel" name="fanSpeedCaptionLabel">
+          <property name="text">
+           <string>Speed</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="fanSpeedLabel">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="fanSpeedUnitLabel">
+          <property name="text">
+           <string>RPM</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="modeLayout">
+        <item>
+         <widget class="QLabel" name="modeCaptionLabel">
+          <property name="text">
+           <string>Mode</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="modeOptionsLayout">
+          <item>
+           <widget class="QRadioButton" name="biosModeButton">
+            <property name="text">
+             <string>BIOS</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="smartModeButton">
+            <property name="text">
+             <string>Smart</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="manualModeLayout">
+            <item>
+             <widget class="QRadioButton" name="manualModeButton">
+              <property name="text">
+               <string>Manual</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="manualModeCombo"/>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
