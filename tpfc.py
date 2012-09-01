@@ -14,20 +14,23 @@ import resources
 
 
 class TPFCUiLoader(QUiLoader):
+	"""
+	Load the UI from the tpfc.ui file and start the application.
+	
+	"""
+	
 	def __init__(self):
 		# Create the application. The application will not close even if its windows are closed.
 		app = QApplication(sys.argv)
 		
 		super().__init__()
-		self.registerCustomWidget(TPFCWindow)
 		
 		# Holds the fan levels' temperatures in sorted order
 		self._levelTemps = sorted(Settings.LEVELS.keys())
 		# Holds the icon colors' temperatures in sorted order
 		self._colorTemps = sorted(Settings.COLORS.keys())
 		
-		self._smartMode = False
-		
+		# Load the UI
 		f = QFile(':/tpfc.ui')
 		f .open(QFile.ReadOnly)
 		self.load(f)
@@ -50,25 +53,38 @@ class TPFCUiLoader(QUiLoader):
 		self._activeButton.toggled.connect(self.toggleTempSensorsVisibility)
 		self.toggleTempSensorsVisibility()
 		
-		self._biosModeButton.clicked.connect(self.enableBIOSMode)
-		self._smartModeButton.clicked.connect(self.enableSmartMode)
+		self._biosModeButton.toggled.connect(self.enableBIOSMode)
+		self._smartModeButton.toggled.connect(self.enableSmartMode)
+		self._manualModeButton.toggled.connect(self.enableManualMode)
 		
 		for speed in sorted(Fan.FIRMWARE_TO_HWMON):
 			self._manualModeCombo.addItem(speed)
 		self._manualModeCombo.addItem('full-speed')
 		self._manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
 		# Changing the selected level changes the fan level immediately if manual mode is enabled
-		self._manualModeCombo.currentIndexChanged.connect(lambda: self.enableManualMode(self._manualModeCombo.currentText()) if self._manualModeButton.isChecked() else None)
+		self._manualModeCombo.currentIndexChanged.connect(self.enableManualMode)
 		
-		self._manualModeButton.clicked.connect(lambda: self.enableManualMode(self._manualModeCombo.currentText()) if self._manualModeButton.isChecked() else None)
-		
-		# Start off the application in auto mode if the fan was already in auto mode, else set it to smart mode
-		if Fan.read().level == 'auto':
-			self._biosModeButton.setChecked(True)
-		else:
+		# Start off the application in smart mode
+		if Fan.isWritable():
 			self._smartModeButton.setChecked(True)
+		else:
+			self._biosModeButton.setChecked(True)
 		
 		self._window.show()
+		
+		# The system tray icon, which also handles the window icon
+		self._systemTrayIcon = TPFCTrayIcon(self, self._window)
+		self._systemTrayIcon.activated.connect(self.systrayIconActivated)
+		self._systemTrayIcon.show()
+		
+		# The context menu for the system tray icon
+		trayIconMenu = QMenu(self._window)
+		self._systemTrayIcon.setContextMenu(trayIconMenu)
+		# The first entry in the context menu hides or shows the main window
+		self._restoreHideAction = QAction('Hide', self._window, triggered = self.toggleVisibility)
+		trayIconMenu.addAction(self._restoreHideAction)
+		# The second entry in the context menu quits the program
+		trayIconMenu.addAction(QAction('Quit', self._window, triggered = QCoreApplication.instance().quit))
 		
 		# Set up updating the fan and temperature regularly, using the update interval specified in the settings
 		timer = QTimer(self)
@@ -79,7 +95,7 @@ class TPFCUiLoader(QUiLoader):
 		
 		# If the fan level is not modificable, show a warning notification balloon from the system tray icon and disable the fan level controls
 		if not Fan.isWritable():
-			self._window._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
+			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
 			for control in (self._biosModeButton, self._smartModeButton, self._manualModeButton, self._manualModeCombo):
 				control.setEnabled(False)
 		
@@ -127,7 +143,7 @@ class TPFCUiLoader(QUiLoader):
 		# Find the item in the dictionary for the highest temperature
 		maxTemp = max((item for item in temps.items() if item[0] not in Settings.HIDDEN_TEMPS), key = operator.itemgetter(1))
 		# ... and tell the system tray icon to update itself and the window icon with the new temperature, sensor and background color
-		self._window._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
+		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 		
 		# Return the highest temperature value
 		return maxTemp[1]
@@ -152,30 +168,48 @@ class TPFCUiLoader(QUiLoader):
 	
 	def enableBIOSMode(self):
 		"""
-		Enable BIOS mode.
+		Enable BIOS mode if the BIOS mode button is checked.
 		
 		"""
 		
-		self._smartMode = False
-		self.setFanLevel('auto')
+		if self._biosModeButton.isChecked():
+			self._smartMode = False
+			self.setFanLevel('auto')
 	
 	def enableSmartMode(self):
 		"""
-		Enable smart mode.
+		Enable smart mode if the smart mode button is checked.
 		
 		"""
 		
-		self._smartMode = True
-		# Fan level will be set in the next update()
+		if self._smartModeButton.isChecked():
+			self._smartMode = True
+			# Fan level will be set in the next update()
 	
-	def enableManualMode(self, newLevel):
+	def enableManualMode(self):
 		"""
-		Enable manual mode.
+		Enable manual mode if the manual mode button is checked.
 		
 		"""
 		
-		self._smartMode = False
-		self.setFanLevel(newLevel)
+		if self._manualModeButton.isChecked():
+			self._smartMode = False
+			self.setFanLevel(self._manualModeCombo.currentText())
+	
+	def systrayIconActivated(self, reason):
+		if reason == QSystemTrayIcon.ActivationReason.Trigger:
+			self.toggleVisibility()
+		
+		# Set the text of the 'Restore'/'Hide' system tray context menu entry
+		self._restoreHideAction.setText('Hide' if self._window.isVisible() else 'Restore')
+	
+	def toggleVisibility(self):
+		"""
+		Toggle the visibility of the main window.
+		
+		"""
+		
+		self._window.setVisible(not self._window.isVisible())
 	
 	def setFanLevel(self, level):
 		"""
@@ -193,39 +227,9 @@ class TPFCWindow(QWidget):
 	
 	"""
 	
-	def __init__(self, parent, **kwargs):
-		super().__init__(parent, **kwargs)
-		
-		# The system tray icon, which also handles the window icon
-		self._systemTrayIcon = TPFCTrayIcon(self)
-		self._systemTrayIcon.activated.connect(lambda reason: self.toggleVisibility() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
-		self._systemTrayIcon.show()
-		
-		# The context menu for the system tray icon
-		trayIconMenu = QMenu(self)
-		self._systemTrayIcon.setContextMenu(trayIconMenu)
-		# The first entry in the context menu hides or shows the main window
-		self._restoreHideAction = QAction('Hide', self, triggered = self.toggleVisibility)
-		trayIconMenu.addAction(self._restoreHideAction)
-		# The second entry in the context menu quits the program
-		trayIconMenu.addAction(QAction('Quit', self, triggered = QCoreApplication.instance().quit))
-	
-	def toggleVisibility(self):
-		"""
-		Toggle the visibility of the main window.
-		
-		"""
-		
-		self.setVisible(not self.isVisible())
-	
-	def setVisible(self, visible):
-		super().setVisible(visible)
-		
-		# Toggle the text of the 'Restore'/'Hide' system tray context menu entry
-		self._restoreHideAction.setText('Hide' if visible else 'Restore')
-		
+	def showEvent(self, event):
 		# If the window is being restored, force it to not be minimized
-		if visible and self.windowState() == Qt.WindowMinimized:
+		if self.windowState() == Qt.WindowMinimized:
 			self.setWindowState(Qt.WindowNoState)
 	
 	def closeEvent(self, event):
@@ -244,15 +248,17 @@ class TPFCTrayIcon(QSystemTrayIcon):
 	
 	"""
 	
-	def __init__(self, parent):
+	def __init__(self, parent, window):
 		super().__init__(parent)
 		
 		# The icon engine
 		self._iconEngine = TPFCIconEngine()
+		# The main window
+		self._window = window
 		
 		# Display the default uninitialized icon
 		self.setIcon(QIcon(self._iconEngine))
-		self.parent().setWindowIcon(self.icon())
+		self._window.setWindowIcon(self.icon())
 	
 	def update(self, name, temp, color):
 		"""
@@ -263,7 +269,7 @@ class TPFCTrayIcon(QSystemTrayIcon):
 		if self._iconEngine.update(name, temp, color):
 			# Only re-compute the icons if the icon has changed
 			self.setIcon(self.icon())
-			self.parent().setWindowIcon(self.icon())
+			self._window.setWindowIcon(self.icon())
 
 
 class TPFCIconEngine(QIconEngineV2):
