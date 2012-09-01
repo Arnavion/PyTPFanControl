@@ -324,7 +324,7 @@ class TPFCIconEngine(QIconEngineV2):
 		# The font of the painter
 		font = painter.font()
 		# The largest font size to draw the text in the icon and still have it fit
-		fontSize = self._fontSizes.get(rect, rect.height())
+		fontSize = self._fontSizes.get(rect, rect.height() / 2)
 		
 		# Check that the text will fit in the icon with that fontSize. If it doesn't, decrease it by 1 point progressively until it does.
 		while True:
