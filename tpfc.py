@@ -84,7 +84,7 @@ class TPFCUiLoader(QUiLoader):
 		self._restoreHideAction = QAction('Hide', self._window, triggered = self.toggleVisibility)
 		trayIconMenu.addAction(self._restoreHideAction)
 		# The second entry in the context menu quits the program
-		trayIconMenu.addAction(QAction('Quit', self._window, triggered = QCoreApplication.instance().quit))
+		trayIconMenu.addAction(QAction('Quit', self._window, triggered = self.quit))
 		
 		# Set up updating the fan and temperature regularly, using the update interval specified in the settings
 		timer = QTimer(self)
@@ -219,6 +219,15 @@ class TPFCUiLoader(QUiLoader):
 		
 		Fan.setLevel(level)
 		self.updateFan()
+	
+	def quit(self):
+		"""
+		Set the fan back into BIOS mode and quit the application.
+		
+		"""
+		
+		self.setFanLevel('auto')
+		QCoreApplication.instance().quit()
 
 
 class TPFCWindow(QWidget):
