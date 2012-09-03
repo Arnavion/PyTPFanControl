@@ -16,7 +16,11 @@ class Settings:
 	SENSOR_NAMES = ('cpu', 'aps', 'crd', 'gpu', 'no5', 'x7d', 'bat', 'x7f', 'bus', 'pci', 'pwr', 'xc3')
 	
 	"""The names of the temperatures which don't return any data, or which are otherwise useless."""
-	HIDDEN_TEMPS = {'no5', 'x7d', 'x7f', 'xc3'}
+	HIDDEN_TEMPS = frozenset(
+		('no5', 'x7d', 'x7f', 'xc3') +
+		# If the battery is unplugged, add the bat sensor to the hidden sensors
+		(('bat',) if not os.path.isdir('/sys/class/power_supply/BAT0') else ())
+	)
 	
 	"""The background color of the icon. The key is the temperature in Celsius, and the value is the color."""
 	COLORS = {0: Qt.GlobalColor.cyan, 55: Qt.GlobalColor.yellow, 65: QColor('orange'), 90: Qt.GlobalColor.red}
@@ -29,7 +33,3 @@ class Settings:
 	
 	"""Set to true for temperatures to be displayed in Fahrenheit. The keys in COLORS and LEVELS are still given in Celsius, regardless of this property."""
 	FAHRENHEIT_OUTPUT = False
-
-	# If the battery is unplugged, add the bat sensor to the hidden sensors
-	if not os.path.isdir('/sys/class/power_supply/BAT0'):
-		HIDDEN_TEMPS.add('bat')
