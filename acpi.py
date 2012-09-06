@@ -2,6 +2,7 @@
 
 import collections
 import errno
+import io
 import sys
 
 from settings import Settings
@@ -28,9 +29,9 @@ class Temperatures:
 		for (i, name) in enumerate(Settings.SENSOR_NAMES):
 			# Unavailable sensors throw ENXIO, so it's fine to ignore them.
 			try:
-				with open(HWMON_PATH + '/temp%s_input' % (i + 1)) as f:
+				with io.open(HWMON_PATH + '/temp%s_input' % (i + 1)) as file:
 					# The value read from the file is in Celsius and multiplied by 1000, so convert it to a normal Celsius value
-					result[name] = int(f.read().rstrip()) // 1000
+					result[name] = int(file.read().rstrip()) // 1000
 			except IOError as e:
 				if e.errno != errno.ENXIO:
 					raise
@@ -70,19 +71,19 @@ class Fan:
 		"""
 		
 		# Read the fan speed
-		with open(Fan.FAN_INPUT_PATH) as f:
-			speed = f.read().rstrip()
+		with io.open(Fan.FAN_INPUT_PATH) as file:
+			speed = file.read().rstrip()
 
 		# Read the fan level, and convert it to the displayable string if required
-		with open(Fan.PWM_ENABLE_PATH) as f:
-			pwmMode = f.read().rstrip()
+		with io.open(Fan.PWM_ENABLE_PATH) as file:
+			pwmMode = file.read().rstrip()
 			if pwmMode == '0':
 				level = 'full-speed'
 			
 			elif pwmMode == '1':
-				with open(Fan.PWM_PATH) as f2:
+				with io.open(Fan.PWM_PATH) as file2:
 					# The value read from the file is between 0-255, so convert it to the firmware level which is between 0-7
-					level = Fan.HWMON_TO_FIRMWARE[f2.read().rstrip()]
+					level = Fan.HWMON_TO_FIRMWARE[file2.read().rstrip()]
 			
 			elif pwmMode == '2':
 				level = 'auto'
@@ -108,19 +109,19 @@ class Fan:
 		# Only try writing to the interface if the program can
 		if Fan._isWritable:
 			if level == 'auto':
-				with open(Fan.PWM_ENABLE_PATH, 'w') as f:
-					f.write('2')
+				with io.open(Fan.PWM_ENABLE_PATH, 'w') as file:
+					file.write('2')
 			
 			elif level == 'full-speed':
-				with open(Fan.PWM_ENABLE_PATH, 'w') as f:
-					f.write('0')
+				with io.open(Fan.PWM_ENABLE_PATH, 'w') as file:
+					file.write('0')
 			
 			else:
-				with open(Fan.PWM_ENABLE_PATH, 'w') as f:
-					f.write('1')
-				with open(Fan.PWM_PATH, 'w') as f:
+				with io.open(Fan.PWM_ENABLE_PATH, 'w') as file:
+					file.write('1')
+				with io.open(Fan.PWM_PATH, 'w') as file:
 					# Convert the firmware level (0-7) to the hwmon level (0-255) and write it
-					f.write(Fan.FIRMWARE_TO_HWMON[level])
+					file.write(Fan.FIRMWARE_TO_HWMON[level])
 	
 	# Path of the file with the fan speed
 	FAN_INPUT_PATH = HWMON_PATH + 'fan1_input'
@@ -142,8 +143,8 @@ class Fan:
 	
 	# Enable the fan watchdog. The fan watchdog resets the fan to BIOS mode if the fan level is not set for the given time. The watchdog is enabled with a time of two times the update interval.
 	try:
-		with open(WATCHDOG_PATH, 'w') as f:
-			f.write(str(Settings.UPDATE_INTERVAL * 2))
+		with io.open(WATCHDOG_PATH, 'w') as file:
+			file.write(str(Settings.UPDATE_INTERVAL * 2))
 			# If writing to the watchdog file succeeded, it means we can write to the fan level file too
 			_isWritable = True
 	except IOError as e:
