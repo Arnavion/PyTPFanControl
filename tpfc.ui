@@ -66,6 +66,9 @@
      <property name="title">
       <string>TPFanControl</string>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
      <layout class="QVBoxLayout" name="tpfcLayout">
       <item>
        <layout class="QHBoxLayout" name="stateLayout">
