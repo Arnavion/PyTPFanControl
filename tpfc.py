@@ -81,13 +81,13 @@ class TPFCUiLoader(QUiLoader):
 		trayIconMenu = QMenu(self._window)
 		self._systemTrayIcon.setContextMenu(trayIconMenu)
 		# The first entry in the context menu hides or shows the main window
-		self._restoreHideAction = QAction('Hide', self._window, triggered = self.toggleVisibility)
+		self._restoreHideAction = QAction('Hide', self._window, triggered=self.toggleVisibility)
 		trayIconMenu.addAction(self._restoreHideAction)
 		# The second entry in the context menu quits the program
-		trayIconMenu.addAction(QAction('Quit', self._window, triggered = self.quit))
+		trayIconMenu.addAction(QAction('Quit', self._window, triggered=self.quit))
 		
 		# Set up updating the fan and temperature regularly, using the update interval specified in the settings
-		QTimer(self, timeout = self.update).start(Settings.UPDATE_INTERVAL * 1000)
+		QTimer(self, timeout=self.update).start(Settings.UPDATE_INTERVAL * 1000)
 		
 		self.update()
 		
@@ -113,9 +113,9 @@ class TPFCUiLoader(QUiLoader):
 		# Start the event loop
 		sys.exit(app.exec_())
 	
-	def createWidget(self, className, parent = None, name = ''):
+	def createWidget(self, className, parent=None, name=''):
 		if className == 'TPFCWindow':
-			result = TPFCWindow(parent, objectName = name)
+			result = TPFCWindow(parent, objectName=name)
 		else:
 			result = super().createWidget(className, parent, name)
 		
@@ -152,7 +152,7 @@ class TPFCUiLoader(QUiLoader):
 		for name in Settings.SENSOR_NAMES:
 			self._valueLabels[name].setText(Temperatures.toDisplayTemp(temps.get(name, 'n/a')))
 		# Find the item in the dictionary for the highest temperature
-		maxTemp = max((item for item in temps.items() if item[0] not in Settings.HIDDEN_TEMPS), key = operator.itemgetter(1))
+		maxTemp = max((item for item in temps.items() if item[0] not in Settings.HIDDEN_TEMPS), key=operator.itemgetter(1))
 		# ... and tell the system tray icon to update itself and the window icon with the new temperature, sensor and background color
 		self._systemTrayIcon.update(maxTemp[0], maxTemp[1], Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
 		
@@ -313,7 +313,7 @@ class TPFCIconEngine(QIconEngineV2):
 		self._fontSizes = {}
 		
 		# The background brush
-		self._backgroundBrush = QBrush(Qt.transparent, bs = Qt.SolidPattern)
+		self._backgroundBrush = QBrush(Qt.transparent, bs=Qt.SolidPattern)
 	
 	def paint(self, painter, rect, mode, state):
 		# This is a workaround for what seems to be a bug in KDE. When drawing system tray icons, none of the drawing methods except drawText work. Because of this, I write out a unicode box symbol in the background color instead of filling the rectangle with the background brush.
