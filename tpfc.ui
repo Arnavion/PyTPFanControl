@@ -3,7 +3,7 @@
  <class>window</class>
  <widget class="TPFCWindow" name="window">
   <property name="windowTitle">
-   <string>TPFanControl</string>
+   <string>PyTPFanControl</string>
   </property>
   <layout class="QHBoxLayout" name="mainLayout">
    <item>
@@ -62,14 +62,14 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="tpfcGB">
+    <widget class="QGroupBox" name="fanGB">
      <property name="title">
-      <string>PyTPFanControl</string>
+      <string>Fan</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
      </property>
-     <layout class="QVBoxLayout" name="tpfcLayout">
+     <layout class="QVBoxLayout" name="fanLayout">
       <item>
        <layout class="QHBoxLayout" name="levelLayout">
         <item>
