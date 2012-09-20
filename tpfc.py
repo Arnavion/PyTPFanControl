@@ -87,15 +87,13 @@ class TPFCUiLoader(QUiLoader):
 		trayIconMenu.addAction(QAction('Quit', self._window, triggered = self.quit))
 		
 		# Set up updating the fan and temperature regularly, using the update interval specified in the settings
-		timer = QTimer(self)
-		timer.timeout.connect(self.update)
-		timer.start(Settings.UPDATE_INTERVAL * 1000)
+		QTimer(self, timeout = self.update).start(Settings.UPDATE_INTERVAL * 1000)
 		
 		self.update()
 		
 		# If the fan level is not modificable, show a warning notification balloon from the system tray icon and disable the fan level controls
 		if not Fan.isWritable():
-			self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning)
+			QTimer.singleShot(1000, lambda: self._systemTrayIcon.showMessage('Warning', 'TPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning))
 			for control in (self._biosModeButton, self._smartModeButton, self._manualModeButton, self._manualModeCombo):
 				control.setEnabled(False)
 		
