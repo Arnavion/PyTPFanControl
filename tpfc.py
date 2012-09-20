@@ -155,7 +155,7 @@ class TPFCUiLoader(QUiLoader):
 		"""
 		
 		fan = Fan.read()
-		self._fanStateLabel.setText(TPFCUiLoader.LEVEL_DISPLAY_STRINGS[fan.level])
+		self._fanLevelLabel.setText(TPFCUiLoader.LEVEL_DISPLAY_STRINGS[fan.level])
 		self._fanSpeedLabel.setText(fan.speed)
 		
 		# If the fan is on manual or smart mode, reset the watchdog timer by setting the same level as the current one

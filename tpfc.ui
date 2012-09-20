@@ -71,16 +71,16 @@
      </property>
      <layout class="QVBoxLayout" name="tpfcLayout">
       <item>
-       <layout class="QHBoxLayout" name="stateLayout">
+       <layout class="QHBoxLayout" name="levelLayout">
         <item>
-         <widget class="QLabel" name="fanStateCaptionLabel">
+         <widget class="QLabel" name="fanLevelCaptionLabel">
           <property name="text">
-           <string>State</string>
+           <string>Level</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="fanStateLabel"/>
+         <widget class="QLabel" name="fanLevelLabel"/>
         </item>
        </layout>
       </item>
