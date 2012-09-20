@@ -100,7 +100,7 @@ class TPFCUiLoader(QUiLoader):
 			try:
 				import dbus
 				notifications = dbus.SessionBus().get_object("org.freedesktop.Notifications", '/org/freedesktop/Notifications')
-				notifications.Notify('PyTPFanControl', dbus.UInt32(0), '', title, message, dbus.Array(signature='s'), dbus.Dictionary(signature='sv'), 0)
+				notifications.Notify('PyTPFanControl', dbus.UInt32(0), 'dialog-warning', title, message, dbus.Array(signature='s'), dbus.Dictionary(signature='sv'), 0)
 			except (ImportError, dbus.exceptions.DBusException):
 				dbusAvailable = False
 			
