@@ -58,8 +58,8 @@ class TPFCUiLoader(QUiLoader):
 		self._manualModeButton.toggled.connect(self.enableManualMode)
 		
 		for speed in sorted(Fan.FIRMWARE_TO_HWMON):
-			self._manualModeCombo.addItem(speed)
-		self._manualModeCombo.addItem('full-speed')
+			self._manualModeCombo.addItem(speed, TPFCUiLoader.LEVEL_DISPLAY_STRINGS[speed])
+		self._manualModeCombo.addItem(TPFCUiLoader.LEVEL_DISPLAY_STRINGS['full-speed'], 'full-speed')
 		self._manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
 		# Changing the selected level changes the fan level immediately if manual mode is enabled
 		self._manualModeCombo.currentIndexChanged.connect(self.enableManualMode)
@@ -155,7 +155,7 @@ class TPFCUiLoader(QUiLoader):
 		"""
 		
 		fan = Fan.read()
-		self._fanStateLabel.setText(fan.level)
+		self._fanStateLabel.setText(TPFCUiLoader.LEVEL_DISPLAY_STRINGS[fan.level])
 		self._fanSpeedLabel.setText(fan.speed)
 		
 		# If the fan is on manual or smart mode, reset the watchdog timer by setting the same level as the current one
@@ -194,7 +194,7 @@ class TPFCUiLoader(QUiLoader):
 		
 		if self._manualModeButton.isChecked():
 			self._smartMode = False
-			self.setFanLevel(self._manualModeCombo.currentText())
+			self.setFanLevel(self._manualModeCombo.itemData(self._manualModeCombo.currentIndex()))
 	
 	def systrayIconActivated(self, reason):
 		if reason == QSystemTrayIcon.ActivationReason.Trigger:
@@ -228,6 +228,10 @@ class TPFCUiLoader(QUiLoader):
 		
 		self.setFanLevel('auto')
 		QCoreApplication.instance().quit()
+	
+	LEVEL_DISPLAY_STRINGS = {speed: speed for speed in Fan.FIRMWARE_TO_HWMON.keys()}
+	LEVEL_DISPLAY_STRINGS['auto'] = 'Auto'
+	LEVEL_DISPLAY_STRINGS['full-speed'] = 'Full speed'
 
 
 class TPFCWindow(QWidget):
