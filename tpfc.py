@@ -31,7 +31,7 @@ class TPFCUiLoader(QUiLoader):
 		self._colorTemps = sorted(Settings.COLORS.keys())
 		
 		# Load the UI
-		f = QFile(path.join(path.dirname(path.realpath(__file__)), 'tpfc.ui'))
+		f = QFile(path.dirname(path.realpath(__file__)) + '/tpfc.ui')
 		f .open(QFile.ReadOnly)
 		self.load(f)
 		f.close()
