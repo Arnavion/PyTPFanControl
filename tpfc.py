@@ -2,6 +2,7 @@
 
 import bisect
 import operator
+from os import path
 import sys
 
 from PySide.QtCore import *
@@ -10,7 +11,6 @@ from PySide.QtUiTools import QUiLoader
 
 from acpi import Temperatures, Fan
 from settings import Settings
-import resources
 
 
 class TPFCUiLoader(QUiLoader):
@@ -31,7 +31,7 @@ class TPFCUiLoader(QUiLoader):
 		self._colorTemps = sorted(Settings.COLORS.keys())
 		
 		# Load the UI
-		f = QFile(':/tpfc.ui')
+		f = QFile(path.join(path.dirname(path.realpath(__file__)), 'tpfc.ui'))
 		f .open(QFile.ReadOnly)
 		self.load(f)
 		f.close()
@@ -371,6 +371,7 @@ class TPFCIconEngine(QIconEngineV2):
 def main():
 	# Create the main window
 	TPFCUiLoader()
+
 
 if __name__ == '__main__':
 	main()
