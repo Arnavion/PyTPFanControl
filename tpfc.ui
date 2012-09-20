@@ -64,7 +64,7 @@
    <item>
     <widget class="QGroupBox" name="tpfcGB">
      <property name="title">
-      <string>TPFanControl</string>
+      <string>PyTPFanControl</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
