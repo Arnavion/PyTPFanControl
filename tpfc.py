@@ -329,7 +329,7 @@ class TPFCIconEngine(QIconEngineV2):
 			painter.eraseRect(rect)
 		
 		# The text to be displayed in the icon
-		text = self._name + '\n' + Temperatures.toDisplayTemp(self._temp)
+		text = '%s\n%s' % (Temperatures.toDisplayTemp(self._temp), self._name)
 		# The font of the painter
 		font = painter.font()
 		# The largest font size to draw the text in the icon and still have it fit
