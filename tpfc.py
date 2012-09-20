@@ -94,15 +94,19 @@ class TPFCUiLoader(QUiLoader):
 		# If the fan level is not modificable, show a warning notification balloon from the system tray icon and disable the fan level controls
 		if not Fan.isWritable():
 			dbusAvailable = True
+			title = 'Warning'
+			message = 'PyTPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.'
+			
 			try:
 				import dbus
 				notifications = dbus.SessionBus().get_object("org.freedesktop.Notifications", '/org/freedesktop/Notifications')
-				notifications.Notify('PyTPFanControl', dbus.UInt32(0), '', 'Warning', 'PyTPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', dbus.Array(signature='s'), dbus.Dictionary(signature='sv'), 0)
+				notifications.Notify('PyTPFanControl', dbus.UInt32(0), '', title, message, dbus.Array(signature='s'), dbus.Dictionary(signature='sv'), 0)
 			except (ImportError, dbus.exceptions.DBusException):
 				dbusAvailable = False
 			
 			if not dbusAvailable:
-				QTimer.singleShot(1000, lambda: self._systemTrayIcon.showMessage('Warning', 'PyTPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.', QSystemTrayIcon.MessageIcon.Warning))
+				QTimer.singleShot(1000, lambda: self._systemTrayIcon.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning))
+			
 			for control in (self._biosModeButton, self._smartModeButton, self._manualModeButton, self._manualModeCombo):
 				control.setEnabled(False)
 		
