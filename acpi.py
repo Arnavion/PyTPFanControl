@@ -29,7 +29,7 @@ class Temperatures:
 		for (i, name) in enumerate(Settings.SENSOR_NAMES):
 			# Unavailable sensors throw ENXIO, so it's fine to ignore them.
 			try:
-				with io.open(HWMON_PATH + '/temp%s_input' % (i + 1)) as file:
+				with io.open(HWMON_PATH + '/temp{0}_input'.format(i + 1)) as file:
 					# The value read from the file is in Celsius and multiplied by 1000, so convert it to a normal Celsius value
 					result[name] = int(file.read().rstrip()) // 1000
 			except IOError as e:
