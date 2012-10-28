@@ -150,7 +150,7 @@ class TPFCUiLoader(QUiLoader):
 		temps = Temperatures.read()
 		# ... and update the labels
 		for name in Settings.SENSOR_NAMES:
-			self._valueLabels[name].setText(Temperatures.toDisplayTemp(temps.get(name, 'n/a')))
+			self._valueLabels[name].setText(str(temps.get(name, 'n/a')))
 		# Find the item in the dictionary for the highest temperature
 		maxTemp = max((item for item in temps.items() if item[0] not in Settings.HIDDEN_TEMPS), key=operator.itemgetter(1))
 		# ... and tell the system tray icon to update itself and the window icon with the new temperature, sensor and background color
@@ -344,7 +344,7 @@ class TPFCIconEngine(QIconEngineV2):
 			painter.eraseRect(rect)
 		
 		# The text to be displayed in the icon
-		text = '{0}\n{1}'.format(Temperatures.toDisplayTemp(self._temp), self._name)
+		text = '{0}\n{1}'.format(self._temp, self._name)
 		# The font of the painter
 		font = painter.font()
 		# The largest font size to draw the text in the icon and still have it fit

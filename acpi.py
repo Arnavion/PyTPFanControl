@@ -31,28 +31,50 @@ class Temperatures:
 			try:
 				with io.open(HWMON_PATH + '/temp{0}_input'.format(i + 1)) as file:
 					# The value read from the file is in Celsius and multiplied by 1000, so convert it to a normal Celsius value
-					result[name] = int(file.read().rstrip()) // 1000
+					result[name] = Temperature(file.read().rstrip())
 			except IOError as e:
 				if e.errno != errno.ENXIO:
 					raise
 		
 		return result
+
+
+class Temperature:
+	"""
+	Temperature read from the hwmon interface.
 	
-	def toDisplayTemp(temp):
+	This class overrides __int__, __str__ and comparison operators.
+	
+	"""
+	
+	def __init__(self, value):
 		"""
-		Convert temp to Fahrenheit if required, and to a `str` suitable for output.
+		Create a temperature from the given `str` read from a temperature sensor file.
 		
-		`temp` is either a number obtained from Temperatures.read(), or the string 'n/a'. If it is the latter, it is returned unchanged.
+		Temperatures are maintained as `int`s.
 		
 		"""
 		
-		if temp == 'n/a':
-			return temp
+		self._value = int(value) // 1000
 		
 		if Settings.FAHRENHEIT_OUTPUT:
-			temp = temp * 9 // 5 + 32
+			value = value * 9 // 5 + 32
 		
-		return str(temp)
+		self._displayString = str(value)
+	
+	def __int__(self):
+		return self._value
+	
+	def __str__(self):
+		"""Return the temperature in either Celsius or Fahrenheit depending on the user's preferences."""
+		
+		return self._displayString
+	
+	def __lt__(self, other):
+		return int(self) < int(other)
+	
+	def __gt__(self, other):
+		return int(self) > int(other)
 
 
 class Fan:
