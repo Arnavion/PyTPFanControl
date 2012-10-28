@@ -31,5 +31,8 @@ class Settings:
 	"""The time in seconds between updates of the thermal sensors and fan sensor."""
 	UPDATE_INTERVAL = 5
 	
-	"""Set to true for temperatures to be displayed in Fahrenheit. The keys in COLORS and LEVELS are still given in Celsius, regardless of this property."""
+	"""Set to ```True``` for temperatures to be displayed in Fahrenheit. The keys in COLORS and LEVELS are still given in Celsius, regardless of this property."""
 	FAHRENHEIT_OUTPUT = False
+	
+	"""Set to ```True``` if you want temperatures to be rounded to the nearest degree, or to ```False``` to have them be truncated."""
+	ROUND_TEMPS = False

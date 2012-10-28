@@ -55,7 +55,10 @@ class Temperature:
 		
 		"""
 		
-		self._value = int(value) // 1000
+		if Settings.ROUND_TEMPS:
+			self._value = round(float(value) / 1000)
+		else:
+			self._value = int(value) // 1000
 		
 		if Settings.FAHRENHEIT_OUTPUT:
 			self._value = self._value * 9 // 5 + 32
