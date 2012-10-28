@@ -58,9 +58,9 @@ class Temperature:
 		self._value = int(value) // 1000
 		
 		if Settings.FAHRENHEIT_OUTPUT:
-			value = value * 9 // 5 + 32
+			self._value = self._value * 9 // 5 + 32
 		
-		self._displayString = str(value)
+		self._displayString = str(self._value)
 	
 	def __int__(self):
 		return self._value
