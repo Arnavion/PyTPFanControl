@@ -58,7 +58,7 @@ class TPFCUiLoader(QUiLoader):
 		self._manualModeButton.toggled.connect(self.enableManualMode)
 		
 		for speed in sorted(Fan.FIRMWARE_TO_HWMON):
-			self._manualModeCombo.addItem(speed, TPFCUiLoader.LEVEL_DISPLAY_STRINGS[speed])
+			self._manualModeCombo.addItem(TPFCUiLoader.LEVEL_DISPLAY_STRINGS[speed], speed)
 		self._manualModeCombo.addItem(TPFCUiLoader.LEVEL_DISPLAY_STRINGS['full-speed'], 'full-speed')
 		self._manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
 		# Changing the selected level changes the fan level immediately if manual mode is enabled
