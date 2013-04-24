@@ -9,7 +9,8 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 from PySide.QtUiTools import QUiLoader
 
-from acpi import Temperatures, Fan
+from acpi import Fan
+from models import TemperaturesModel, FanModel
 from settings import Settings
 
 
@@ -42,30 +43,28 @@ class TPFCWindow(QWidget):
 		# Holds the icon colors' temperatures in sorted order
 		self._colorTemps = sorted(Settings.COLORS.keys())
 		
-		self._tempsTable.setRowCount(len(Settings.SENSOR_NAMES))
+		self._tempsModel = TemperaturesModel()
+		# Connect the temperatures table to the temperatures model
+		self._tempsTable.setModel(self._tempsModel)
 		self._tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
 		
-		# Map of sensor name to the corresponding GUI label which displays the temperature of that sensor
-		self._valueLabels = {}
-		for (i, name) in enumerate(Settings.SENSOR_NAMES):
-			self._tempsTable.setItem(i, 0, QTableWidgetItem(name))
-			
-			tempLabel = QTableWidgetItem()
-			self._tempsTable.setItem(i, 1, tempLabel)
-			self._valueLabels[name] = tempLabel
-			
-			self._tempsTable.setItem(i, 2, QTableWidgetItem('\xB0C'))
+		# Update the icons when the temperatures change
+		self._tempsModel.modelReset.connect(self.updateIcons)
 		
 		self._activeButton.toggled.connect(self.toggleTempSensorsVisibility)
 		self.toggleTempSensorsVisibility()
+		
+		self._fanModel = FanModel()
+		# Connect the fan speed and level labels to the fan model.
+		self._fanModel.modelReset.connect(self.updateFanLabels)
 		
 		self._biosModeButton.toggled.connect(self.enableBIOSMode)
 		self._smartModeButton.toggled.connect(self.enableSmartMode)
 		self._manualModeButton.toggled.connect(self.enableManualMode)
 		
 		for speed in sorted(Fan.FIRMWARE_TO_HWMON):
-			self._manualModeCombo.addItem(TPFCWindow.LEVEL_DISPLAY_STRINGS[speed], speed)
-		self._manualModeCombo.addItem(TPFCWindow.LEVEL_DISPLAY_STRINGS['full-speed'], 'full-speed')
+			self._manualModeCombo.addItem(FanModel.LEVEL_DISPLAY_STRINGS[speed], speed)
+		self._manualModeCombo.addItem(FanModel.LEVEL_DISPLAY_STRINGS['full-speed'], 'full-speed')
 		self._manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
 		# Changing the selected level changes the fan level immediately if manual mode is enabled
 		self._manualModeCombo.currentIndexChanged.connect(self.enableManualMode)
@@ -101,9 +100,9 @@ class TPFCWindow(QWidget):
 		trayIconMenu.addAction(QAction('Quit', self, triggered=self.quit))
 		
 		# Set up updating the fan and temperature regularly, using the update interval specified in the settings
-		QTimer(self, timeout=self.update).start(Settings.UPDATE_INTERVAL * 1000)
+		QTimer(self, timeout=self.tickModels).start(Settings.UPDATE_INTERVAL * 1000)
 		
-		self.update()
+		self.tickModels()
 		
 		# If the fan level is not modificable, show a warning notification balloon from the system tray icon and disable the fan level controls
 		if not Fan.isWritable():
@@ -120,55 +119,21 @@ class TPFCWindow(QWidget):
 			for control in (self._biosModeButton, self._smartModeButton, self._manualModeButton, self._manualModeCombo):
 				control.setEnabled(False)
 	
-	def update(self):
+	def tickModels(self):
 		"""
 		Update the temperature and fan sensor displays, and the system tray and window icons. If smart mode is enabled, also calculate the new fan level.
 		
 		"""
 		
-		# Update the temperature labels and icons
-		maxTemp = self.updateTemps()
+		self._tempsModel.tick()
+		
 		# If smart mode is enabled
 		if self._smartMode:
 			# Calculate and set the new fan level
-			newFanLevel = Settings.LEVELS[self._levelTemps[bisect.bisect_left(self._levelTemps, maxTemp) - 1]]
-			self.setFanLevel(newFanLevel)
+			newFanLevel = Settings.LEVELS[self._levelTemps[bisect.bisect_left(self._levelTemps, self._tempsModel.maxTemp()[1]) - 1]]
+			self._fanModel.setLevel(newFanLevel)
 		
-		# Update the fan labels
-		self.updateFan()
-	
-	def updateTemps(self):
-		"""
-		Update the temperature sensor labels, the system tray icon, and the window icon, and return the highest temperature value.
-		
-		"""
-		
-		# Read the temperatures
-		temps = Temperatures.read()
-		# ... and update the labels
-		for name in Settings.SENSOR_NAMES:
-			self._valueLabels[name].setText(str(temps.get(name, 'n/a')))
-		# Find the item in the dictionary for the highest temperature
-		maxTemp = max((item for item in temps.items() if item[0] not in Settings.HIDDEN_TEMPS), key=operator.itemgetter(1))
-		# ... and update the system tray icon and the window icon with the new temperature, sensor and background color
-		self.updateIcons(maxTemp[0], maxTemp[1], Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]])
-		
-		# Return the highest temperature value
-		return maxTemp[1]
-	
-	def updateFan(self):
-		"""
-		Update the fan speed and level labels.
-		
-		"""
-		
-		fan = Fan.read()
-		self._fanLevelLabel.setText(TPFCWindow.LEVEL_DISPLAY_STRINGS[fan.level])
-		self._fanSpeedLabel.setText(fan.speed)
-		
-		# If the fan is on manual or smart mode, reset the watchdog timer by setting the same level as the current one
-		if fan.level != 'auto':
-			Fan.setLevel(fan.level)
+		self._fanModel.tick()
 	
 	def toggleTempSensorsVisibility(self):
 		for name in Settings.HIDDEN_TEMPS:
@@ -182,7 +147,7 @@ class TPFCWindow(QWidget):
 		
 		if self._biosModeButton.isChecked():
 			self._smartMode = False
-			self.setFanLevel('auto')
+			self._fanModel.setLevel('auto')
 	
 	def enableSmartMode(self):
 		"""
@@ -192,7 +157,7 @@ class TPFCWindow(QWidget):
 		
 		if self._smartModeButton.isChecked():
 			self._smartMode = True
-			# Fan level will be set in the next update()
+			# Fan level will be set in the next tickModels()
 	
 	def enableManualMode(self):
 		"""
@@ -202,18 +167,33 @@ class TPFCWindow(QWidget):
 		
 		if self._manualModeButton.isChecked():
 			self._smartMode = False
-			self.setFanLevel(self._manualModeCombo.itemData(self._manualModeCombo.currentIndex()))
+			self._fanModel.setLevel(self._manualModeCombo.itemData(self._manualModeCombo.currentIndex()))
 	
-	def updateIcons(self, name, temp, color):
+	def updateIcons(self):
 		"""
 		Update the system tray icon and the window icon to display the given sensor name and temperature with the given background color.
 		
 		"""
 		
+		maxTemp = self._tempsModel.maxTemp()
+		
+		name = maxTemp[0]
+		temp = maxTemp[1]
+		color = Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]]
+		
 		if self._iconEngine.update(name, temp, color):
 			# Only re-compute the icons if the icon has changed
 			self._systemTrayIcon.setIcon(self._icon)
 			self.setWindowIcon(self._icon)
+	
+	def updateFanLabels(self):
+		"""
+		Update the fan speed and level labels.
+		
+		"""
+		
+		self._fanLevelLabel.setText(FanModel.LEVEL_DISPLAY_STRINGS[self._fanModel.level()])
+		self._fanSpeedLabel.setText(self._fanModel.speed())
 	
 	def systemTrayIconActivated(self, reason):
 		if reason == QSystemTrayIcon.ActivationReason.Trigger:
@@ -230,22 +210,13 @@ class TPFCWindow(QWidget):
 		
 		self.setVisible(not self.isVisible())
 	
-	def setFanLevel(self, level):
-		"""
-		Set the fan level to the new level and update the fan labels.
-		
-		"""
-		
-		Fan.setLevel(level)
-		self.updateFan()
-	
 	def quit(self):
 		"""
 		Set the fan back into BIOS mode and quit the application.
 		
 		"""
 		
-		self.setFanLevel('auto')
+		self._fanModel.setLevel('auto')
 		QCoreApplication.instance().quit()
 
 	def showEvent(self, event):
@@ -261,10 +232,6 @@ class TPFCWindow(QWidget):
 		
 		self.hide()
 		event.ignore()
-	
-	LEVEL_DISPLAY_STRINGS = {speed: speed for speed in Fan.FIRMWARE_TO_HWMON.keys()}
-	LEVEL_DISPLAY_STRINGS['auto'] = 'Auto'
-	LEVEL_DISPLAY_STRINGS['full-speed'] = 'Full speed'
 
 
 class TPFCIconEngine(QIconEngineV2):
