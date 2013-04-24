@@ -313,12 +313,13 @@ class TPFCIconEngine(QIconEngineV2):
 		self._fontSizes = {}
 		
 		# The background brush
-		self._backgroundBrush = QBrush(Qt.transparent, bs=Qt.SolidPattern)
+		self._backgroundBrush = QBrush(Qt.SolidPattern)
 	
 	def paint(self, painter, rect, mode, state):
-		# This is a workaround for what seems to be a bug in KDE. When drawing system tray icons, none of the drawing methods except drawText work. Because of this, I write out a unicode box symbol in the background color instead of filling the rectangle with the background brush.
+		# This is a workaround for what seems to be a bug in KDE. When drawing system tray icons, none of the drawing methods except drawText work.
+		# Because of this, I write out a unicode box symbol in the background color instead of filling the rectangle with the background brush.
 		if isinstance(painter.device(), QWidget): # System tray icon; only drawText works; fillRect, drawLine, etc. don't
-			# Get the pen of the painer
+			# Get the pen of the painter
 			pen = painter.pen()
 			# ... and set its foreground color to the required background color
 			penColor = pen.color()
@@ -327,17 +328,18 @@ class TPFCIconEngine(QIconEngineV2):
 			
 			# Set the font size to be the same as the rectangle height
 			font = painter.font()
-			font.setPointSize(rect.height())
+			font.setPointSize(rect.height() * 2)
 			painter.setFont(font)
 			
 			# Draw the unicode box █
-			painter.drawText(rect, '\u2588')
+			backgroundRect = rect.adjusted(-rect.width() // 2, -rect.height() // 2, rect.width() // 2, rect.height() // 2);
+			painter.drawText(backgroundRect, '\u2588')
 			
 			# Restore the original foreground color. The font size will be set later.
 			pen.setColor(penColor)
 			painter.setPen(pen)
 		
-		else: # Task manager / task switcher icons; fillRect works
+		else: # Task manager / task switcher icons; eraseRect works
 			# Set the background brush
 			painter.setBackground(self._backgroundBrush)
 			# ... and fill the rectangle with it
@@ -348,7 +350,7 @@ class TPFCIconEngine(QIconEngineV2):
 		# The font of the painter
 		font = painter.font()
 		# The largest font size to draw the text in the icon and still have it fit
-		fontSize = self._fontSizes.get(rect, rect.height() / 2)
+		fontSize = self._fontSizes.get(rect, rect.height() // 2)
 		
 		# Check that the text will fit in the icon with that fontSize. If it doesn't, decrease it by 1 point progressively until it does.
 		while True:
