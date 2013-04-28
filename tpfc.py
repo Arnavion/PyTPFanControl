@@ -26,7 +26,7 @@ class TPFCUiLoader(QUiLoader):
 			self._loadResult = result
 		else:
 			result = super().createWidget(className, parent, name)
-			setattr(self._loadResult, '_' + name, result)
+			setattr(self._loadResult, name, result)
 		
 		return result
 
@@ -38,57 +38,53 @@ class TPFCWindow(QWidget):
 	"""
 	
 	def loaded(self):
-		# Holds the fan levels' temperatures in sorted order
-		self._levelTemps = sorted(Settings.LEVELS.keys())
-		# Holds the icon colors' temperatures in sorted order
-		self._colorTemps = sorted(Settings.COLORS.keys())
+		self._tempsModel = TemperaturesModel(self)
 		
-		self._tempsModel = TemperaturesModel()
+		self._fanModel = FanModel(self._tempsModel, self)
+		
 		# Connect the temperatures table to the temperatures model
-		self._tempsTable.setModel(self._tempsModel)
-		self._tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
+		self.tempsTable.setModel(self._tempsModel)
+		self.tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
 		
 		# Update the icons when the temperatures change
-		self._tempsModel.modelReset.connect(self.updateIcons)
+		self._tempsModel.modelReset.connect(self.updateTemperatureIcons)
 		
-		self._activeButton.toggled.connect(self.toggleTempSensorsVisibility)
-		self.toggleTempSensorsVisibility()
-		
-		self._fanModel = FanModel()
 		# Connect the fan speed and level labels to the fan model.
 		self._fanModel.modelReset.connect(self.updateFanLabels)
 		
-		self._biosModeButton.toggled.connect(self.enableBIOSMode)
-		self._smartModeButton.toggled.connect(self.enableSmartMode)
-		self._manualModeButton.toggled.connect(self.enableManualMode)
+		self.activeButton.toggled.connect(self.toggleTempSensorsVisibility)
+		self.toggleTempSensorsVisibility()
+		
+		self.biosModeButton.toggled.connect(self.enableBIOSMode)
+		self.smartModeButton.toggled.connect(self.enableSmartMode)
+		self.manualModeButton.toggled.connect(self.enableManualMode)
 		
 		for speed in sorted(Fan.FIRMWARE_TO_HWMON):
-			self._manualModeCombo.addItem(FanModel.LEVEL_DISPLAY_STRINGS[speed], speed)
-		self._manualModeCombo.addItem(FanModel.LEVEL_DISPLAY_STRINGS['full-speed'], 'full-speed')
-		self._manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
+			self.manualModeCombo.addItem(FanModel.LEVEL_DISPLAY_STRINGS[speed], speed)
+		self.manualModeCombo.addItem(FanModel.LEVEL_DISPLAY_STRINGS['full-speed'], 'full-speed')
+		self.manualModeCombo.setCurrentIndex(len(Fan.FIRMWARE_TO_HWMON))
 		# Changing the selected level changes the fan level immediately if manual mode is enabled
-		self._manualModeCombo.currentIndexChanged.connect(self.enableManualMode)
+		self.manualModeCombo.currentIndexChanged.connect(self.enableManualMode)
 		
 		# Start off the application in smart mode
 		if Fan.isWritable():
-			self._smartModeButton.setChecked(True)
+			self.smartModeButton.setChecked(True)
 		else:
-			self._biosModeButton.setChecked(True)
+			self.biosModeButton.setChecked(True)
 		
 		self.show()
 		
 		# The icon engine and icon object
-		self._iconEngine = TPFCIconEngine()
-		self._icon = QIcon(self._iconEngine)
+		self._iconEngine = TPFCIconEngine(self._tempsModel)
+		icon = QIcon(self._iconEngine)
 		
 		# The system tray icon
-		self._systemTrayIcon = QSystemTrayIcon(self)
+		self._systemTrayIcon = QSystemTrayIcon(icon, self)
 		self._systemTrayIcon.activated.connect(self.systemTrayIconActivated)
-		self._systemTrayIcon.setIcon(self._icon)
-		self._systemTrayIcon.show()
+		self._systemTrayIcon.setVisible(True)
 		
 		# The window icon
-		self.setWindowIcon(self._icon)
+		self.setWindowIcon(icon)
 		
 		# The context menu for the system tray icon
 		trayIconMenu = QMenu(self)
@@ -98,11 +94,6 @@ class TPFCWindow(QWidget):
 		trayIconMenu.addAction(self._restoreHideAction)
 		# The second entry in the context menu quits the program
 		trayIconMenu.addAction(QAction('Quit', self, triggered=self.quit))
-		
-		# Set up updating the fan and temperature regularly, using the update interval specified in the settings
-		QTimer(self, timeout=self.tickModels).start(Settings.UPDATE_INTERVAL * 1000)
-		
-		self.tickModels()
 		
 		# If the fan level is not modificable, show a warning notification balloon from the system tray icon and disable the fan level controls
 		if not Fan.isWritable():
@@ -123,28 +114,12 @@ class TPFCWindow(QWidget):
 			if not dbusAvailable:
 				QTimer.singleShot(1000, lambda: self._systemTrayIcon.showMessage(title, message, QSystemTrayIcon.Warning))
 			
-			for control in (self._biosModeButton, self._smartModeButton, self._manualModeButton, self._manualModeCombo):
+			for control in (self.biosModeButton, self.smartModeButton, self.manualModeButton, self.manualModeCombo):
 				control.setEnabled(False)
-	
-	def tickModels(self):
-		"""
-		Update the temperature and fan sensor displays, and the system tray and window icons. If smart mode is enabled, also calculate the new fan level.
-		
-		"""
-		
-		self._tempsModel.tick()
-		
-		# If smart mode is enabled
-		if self._smartMode:
-			# Calculate and set the new fan level
-			newFanLevel = Settings.LEVELS[self._levelTemps[bisect.bisect_left(self._levelTemps, self._tempsModel.maxTemp()[1]) - 1]]
-			self._fanModel.setLevel(newFanLevel)
-		
-		self._fanModel.tick()
 	
 	def toggleTempSensorsVisibility(self):
 		for name in Settings.HIDDEN_TEMPS:
-			self._tempsTable.setRowHidden(Settings.SENSOR_NAMES.index(name), self._activeButton.isChecked())
+			self.tempsTable.setRowHidden(Settings.SENSOR_NAMES.index(name), self.activeButton.isChecked())
 	
 	def enableBIOSMode(self):
 		"""
@@ -152,9 +127,8 @@ class TPFCWindow(QWidget):
 		
 		"""
 		
-		if self._biosModeButton.isChecked():
-			self._smartMode = False
-			self._fanModel.setLevel('auto')
+		if self.biosModeButton.isChecked():
+			self._fanModel.setBIOSMode()
 	
 	def enableSmartMode(self):
 		"""
@@ -162,9 +136,8 @@ class TPFCWindow(QWidget):
 		
 		"""
 		
-		if self._smartModeButton.isChecked():
-			self._smartMode = True
-			# Fan level will be set in the next tickModels()
+		if self.smartModeButton.isChecked():
+			self._fanModel.setSmartMode()
 	
 	def enableManualMode(self):
 		"""
@@ -172,26 +145,19 @@ class TPFCWindow(QWidget):
 		
 		"""
 		
-		if self._manualModeButton.isChecked():
-			self._smartMode = False
-			self._fanModel.setLevel(self._manualModeCombo.itemData(self._manualModeCombo.currentIndex()))
+		if self.manualModeButton.isChecked():
+			self._fanModel.setManualMode(self.manualModeCombo.itemData(self.manualModeCombo.currentIndex()))
 	
-	def updateIcons(self):
+	def updateTemperatureIcons(self):
 		"""
-		Update the system tray icon and the window icon to display the given sensor name and temperature with the given background color.
+		Update the system tray icon and the window icon to display the name and temperature of the hottest sensor.
 		
 		"""
 		
-		maxTemp = self._tempsModel.maxTemp()
-		
-		name = maxTemp[0]
-		temp = maxTemp[1]
-		color = Settings.COLORS[self._colorTemps[bisect.bisect_left(self._colorTemps, maxTemp[1]) - 1]]
-		
-		if self._iconEngine.update(name, temp, color):
-			# Only re-compute the icons if the icon has changed
-			self._systemTrayIcon.setIcon(self._icon)
-			self.setWindowIcon(self._icon)
+		# Only re-compute the icons if the icon has changed
+		if self._iconEngine.update():
+			self._systemTrayIcon.setIcon(self._systemTrayIcon.icon())
+			self.setWindowIcon(self.windowIcon())
 	
 	def updateFanLabels(self):
 		"""
@@ -199,15 +165,16 @@ class TPFCWindow(QWidget):
 		
 		"""
 		
-		self._fanLevelLabel.setText(FanModel.LEVEL_DISPLAY_STRINGS[self._fanModel.level()])
-		self._fanSpeedLabel.setText(self._fanModel.speed())
+		self.fanLevelLabel.setText(FanModel.LEVEL_DISPLAY_STRINGS[self._fanModel.level()])
+		self.fanSpeedLabel.setText(self._fanModel.speed())
 	
 	def systemTrayIconActivated(self, reason):
-		if reason == QSystemTrayIcon.ActivationReason.Trigger:
+		if reason == QSystemTrayIcon.Trigger:
 			self.toggleVisibility()
 		
-		# Set the text of the 'Restore'/'Hide' system tray context menu entry
-		self._restoreHideAction.setText('Hide' if self.isVisible() else 'Restore')
+		elif reason == QSystemTrayIcon.Context:
+			# Set the text of the 'Restore'/'Hide' system tray context menu entry
+			self._restoreHideAction.setText('Hide' if self.isVisible() else 'Restore')
 	
 	def toggleVisibility(self):
 		"""
@@ -223,7 +190,7 @@ class TPFCWindow(QWidget):
 		
 		"""
 		
-		self._fanModel.setLevel('auto')
+		self._fanModel.setBIOSMode()
 		QCoreApplication.instance().quit()
 
 	def showEvent(self, event):
@@ -247,18 +214,24 @@ class TPFCIconEngine(QIconEngineV2):
 	
 	"""
 	
-	def __init__(self):
+	def __init__(self, tempsModel):
 		super().__init__()
 		
-		# Name of the sensor
-		self._name = ''
-		# Temperature of the sensor
-		self._temp = ''
+		# Temperatures model
+		self._tempsModel = tempsModel
+		
 		# Map of icon size rectangle to the maximum font size with which the text can be drawn to fit in the icon
 		self._fontSizes = {}
 		
+		# Name of the sensor with the highest temperature
+		self._name = ''
+		# Temperature of that sensor
+		self._temp = ''
+		
 		# The background brush
 		self._backgroundBrush = QBrush(Qt.SolidPattern)
+		
+		self.update()
 	
 	def paint(self, painter, rect, mode, state):
 		# This is a workaround for what seems to be a bug in KDE. When drawing system tray icons, none of the drawing methods except drawText work.
@@ -292,32 +265,22 @@ class TPFCIconEngine(QIconEngineV2):
 		
 		# The text to be displayed in the icon
 		text = '{0}\n{1}'.format(self._temp, self._name)
-		# The font of the painter
-		font = painter.font()
-		# The largest font size to draw the text in the icon and still have it fit
-		fontSize = self._fontSizes.get(rect, rect.height() // 2)
 		
-		# Check that the text will fit in the icon with that fontSize. If it doesn't, decrease it by 1 point progressively until it does.
-		while True:
-			font.setPointSize(fontSize)
-			painter.setFont(font)
-			boundingRect = painter.boundingRect(rect, Qt.AlignCenter, text)
-			if boundingRect.width() <= rect.width() and boundingRect.height() <= rect.height():
-				# If this font size works, save it as the maximum font size for this rectangle
-				self._fontSizes[rect] = fontSize
-				break
-			else:
-				# ... else decrease it by one point and try again
-				fontSize = fontSize - 1
+		self.setOptimalFontSize(painter, rect, text)
 		
-		# The font size has been determined, so draw the text
 		painter.drawText(rect, Qt.AlignCenter, text)
 	
-	def update(self, name, temp, color):
+	def update(self):
 		"""
 		Update the icon engine with the new sensor name, temperature and background color for the icons. Return `True` if any of the values are different from the last call to `update` and thus, if re-rendering the icon is needed.
 		
 		"""
+		
+		maxTemp = self._tempsModel.maxTemp()
+		
+		name = maxTemp[0]
+		temp = maxTemp[1]
+		color = Settings.COLORS[TPFCIconEngine.COLOR_TEMPS[bisect.bisect_left(TPFCIconEngine.COLOR_TEMPS, maxTemp[1]) - 1]]
 		
 		if self._name != name or self._temp != temp or self._backgroundBrush.color() != color:
 			self._name = name
@@ -328,6 +291,34 @@ class TPFCIconEngine(QIconEngineV2):
 		
 		else:
 			return False
+	
+	def setOptimalFontSize(self, painter, rect, text):
+		# The font of the painter
+		font = painter.font()
+		# The key to find in the _fontSizes dict
+		fontSizesKey = (rect.width(), rect.height())
+		# The largest font size to draw the text in the icon and still have it fit
+		fontSize = self._fontSizes.get(fontSizesKey, rect.height())
+		
+		# Check that the text will fit in the icon with that fontSize. If it doesn't, decrease it progressively until it does.
+		while True:
+			font.setPointSize(fontSize)
+			painter.setFont(font)
+			boundingRect = painter.boundingRect(rect, Qt.AlignCenter, text)
+			if boundingRect.width() <= rect.width() and boundingRect.height() <= rect.height():
+				# If this font size works, save it as the maximum font size for this rectangle
+				self._fontSizes[fontSizesKey] = fontSize
+				break
+			else:
+				# ... else decrease it and try again
+				factor = max(boundingRect.width() / rect.width(), boundingRect.height() / rect.height())
+				oldFontSize = fontSize
+				fontSize = fontSize // factor
+				if fontSize == oldFontSize:
+					fontSize = fontSize - 1 # Atleast decrease the font size by 1
+	
+	# Holds the icon colors' temperatures in sorted order
+	COLOR_TEMPS = sorted(Settings.COLORS.keys())
 
 
 def main():
@@ -336,7 +327,6 @@ def main():
 	
 	# Load the UI and create the main window
 	window = TPFCUiLoader().load(path.dirname(path.realpath(__file__)) + '/tpfc.ui')
-	
 	window.loaded()
 	
 	# Start the event loop

@@ -21,7 +21,7 @@ class Settings:
 	)
 	
 	"""The background color of the icon. The key is the temperature in Celsius, and the value is the color."""
-	COLORS = {0: Qt.GlobalColor.cyan, 50: Qt.GlobalColor.yellow, 65: QColor('orange'), 90: Qt.GlobalColor.red}
+	COLORS = {0: Qt.cyan, 50: Qt.yellow, 65: QColor('orange'), 90: Qt.red}
 	
 	"""The fan levels for SMART mode. The key is the temperature in Celsius, and the value is the fan level."""
 	LEVELS = {0: '0', 50: '1', 65: '3', 80: '7', 90: 'full-speed'}
