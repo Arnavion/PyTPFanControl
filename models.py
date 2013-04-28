@@ -3,7 +3,7 @@
 import bisect
 import operator
 
-from PySide.QtCore import *
+from PyQt4.QtCore import *
 
 from acpi import Temperatures, Fan
 from settings import Settings

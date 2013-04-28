@@ -12,7 +12,7 @@ This will run the script with superuser rights, so you can also set the fan spee
 ### Requirements
 - thinkpad-acpi in your kernel
 - fan_control=1 module parameter for thinkpad-acpi
-- PySide compiled for Python3
+- PyQt4 compiled for Python3 and Qt5
 
 ### Notes
 - The script currently has the names of sensors hard-coded to work for the T61.

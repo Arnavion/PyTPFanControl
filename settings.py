@@ -1,7 +1,7 @@
 import os
 
-from PySide.QtCore import Qt
-from PySide.QtGui import QColor
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QColor
 
 
 class Settings:

@@ -5,46 +5,33 @@ import operator
 from os import path
 import sys
 
-from PySide.QtCore import *
-from PySide.QtGui import *
-from PySide.QtUiTools import QUiLoader
+from PyQt4 import uic
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
 
 from acpi import Fan
 from models import TemperaturesModel, FanModel
 from settings import Settings
 
 
-class TPFCUiLoader(QUiLoader):
-	"""
-	Specialized QUiLoader to load TPFCWindow from tpfc.ui
-	
-	"""
-	
-	def createWidget(self, className, parent=None, name=''):
-		if className == 'TPFCWindow':
-			result = TPFCWindow(parent, objectName=name)
-			self._loadResult = result
-		else:
-			result = super().createWidget(className, parent, name)
-			setattr(self._loadResult, name, result)
-		
-		return result
-
-
-class TPFCWindow(QWidget):
+CustomClass, WidgetClass = uic.loadUiType(path.dirname(path.realpath(__file__)) + '/tpfc.ui')
+class TPFCWindow(CustomClass, WidgetClass):
 	"""
 	Main window of application.
 	
 	"""
 	
-	def loaded(self):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.setupUi(self)
+		
 		self._tempsModel = TemperaturesModel(self)
 		
 		self._fanModel = FanModel(self._tempsModel, self)
 		
 		# Connect the temperatures table to the temperatures model
 		self.tempsTable.setModel(self._tempsModel)
-		self.tempsTable.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
+		self.tempsTable.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 		
 		# Update the icons when the temperatures change
 		self._tempsModel.modelReset.connect(self.updateTemperatureIcons)
@@ -208,7 +195,7 @@ class TPFCWindow(QWidget):
 		event.ignore()
 
 
-class TPFCIconEngine(QIconEngineV2):
+class TPFCIconEngine(QIconEngine):
 	"""
 	Create an icon engine which knows how to generate icons given a sensor name, temperature and background color.
 	
@@ -234,34 +221,10 @@ class TPFCIconEngine(QIconEngineV2):
 		self.update()
 	
 	def paint(self, painter, rect, mode, state):
-		# This is a workaround for what seems to be a bug in KDE. When drawing system tray icons, none of the drawing methods except drawText work.
-		# Because of this, I write out a unicode box symbol in the background color instead of filling the rectangle with the background brush.
-		if isinstance(painter.device(), QWidget): # System tray icon; only drawText works; fillRect, drawLine, etc. don't
-			# Get the pen of the painter
-			pen = painter.pen()
-			# ... and set its foreground color to the required background color
-			penColor = pen.color()
-			pen.setColor(self._backgroundBrush.color())
-			painter.setPen(pen)
-			
-			# Set the font size to be the same as the rectangle height
-			font = painter.font()
-			font.setPointSize(rect.height() * 2)
-			painter.setFont(font)
-			
-			# Draw the unicode box █
-			backgroundRect = rect.adjusted(-rect.width() // 2, -rect.height() // 2, rect.width() // 2, rect.height() // 2);
-			painter.drawText(backgroundRect, '\u2588')
-			
-			# Restore the original foreground color. The font size will be set later.
-			pen.setColor(penColor)
-			painter.setPen(pen)
-		
-		else: # Task manager / task switcher icons; eraseRect works
-			# Set the background brush
-			painter.setBackground(self._backgroundBrush)
-			# ... and fill the rectangle with it
-			painter.eraseRect(rect)
+		# Set the background brush
+		painter.setBackground(self._backgroundBrush)
+		# ... and fill the rectangle with it
+		painter.eraseRect(rect)
 		
 		# The text to be displayed in the icon
 		text = '{0}\n{1}'.format(self._temp, self._name)
@@ -326,8 +289,7 @@ def main():
 	app = QApplication(sys.argv)
 	
 	# Load the UI and create the main window
-	window = TPFCUiLoader().load(path.dirname(path.realpath(__file__)) + '/tpfc.ui')
-	window.loaded()
+	window = TPFCWindow()
 	
 	# Start the event loop
 	sys.exit(app.exec_())
