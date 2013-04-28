@@ -109,12 +109,19 @@ class TPFCWindow(QWidget):
 			title = 'Warning'
 			message = 'PyTPFanControl does not have write access to the ACPI interface. Fan speed will be read-only.'
 			
+			dbusAvailable = True
 			try:
 				import dbus
-				notifications = dbus.SessionBus().get_object("org.freedesktop.Notifications", '/org/freedesktop/Notifications')
-				notifications.Notify('PyTPFanControl', dbus.UInt32(0), 'dialog-warning', title, message, dbus.Array(signature='s'), dbus.Dictionary(signature='sv'), 0)
-			except (ImportError, dbus.exceptions.DBusException):
-				QTimer.singleShot(1000, lambda: self._systemTrayIcon.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning))
+				try:
+					notifications = dbus.SessionBus().get_object("org.freedesktop.Notifications", '/org/freedesktop/Notifications')
+					notifications.Notify('PyTPFanControl', dbus.UInt32(0), 'dialog-warning', title, message, dbus.Array(signature='s'), dbus.Dictionary(signature='sv'), 0)
+				except dbus.exceptions.DBusException:
+					dbusAvailable = False
+			except ImportError:
+				dbusAvailable = False
+			
+			if not dbusAvailable:
+				QTimer.singleShot(1000, lambda: self._systemTrayIcon.showMessage(title, message, QSystemTrayIcon.Warning))
 			
 			for control in (self._biosModeButton, self._smartModeButton, self._manualModeButton, self._manualModeCombo):
 				control.setEnabled(False)
