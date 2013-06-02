@@ -79,7 +79,9 @@ class TPFCWindow(CustomClass, WidgetClass):
 		# The first entry in the context menu hides or shows the main window
 		self._restoreHideAction = QAction('Hide', self, triggered=self.toggleVisibility)
 		trayIconMenu.addAction(self._restoreHideAction)
-		# The second entry in the context menu quits the program
+		# The second entry in the context menu resets the system tray icon
+		trayIconMenu.addAction(QAction('Reset icon', self, triggered=self.resetSystemTrayIcon))
+		# The third entry in the context menu quits the program
 		trayIconMenu.addAction(QAction('Quit', self, triggered=self.quit))
 		
 		# If the fan level is not modificable, show a warning notification balloon from the system tray icon and disable the fan level controls
@@ -179,7 +181,15 @@ class TPFCWindow(CustomClass, WidgetClass):
 		
 		self._fanModel.setBIOSMode()
 		QCoreApplication.instance().quit()
-
+	
+	def resetSystemTrayIcon(self):
+		"""
+		Reset the system tray icon.
+		"""
+		
+		self._systemTrayIcon.setVisible(False)
+		self._systemTrayIcon.setVisible(True)
+	
 	def showEvent(self, event):
 		# If the window is being restored, force it to not be minimized
 		if self.windowState() == Qt.WindowMinimized:
