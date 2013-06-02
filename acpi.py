@@ -28,7 +28,6 @@ class Temperatures:
 			# Unavailable sensors throw ENXIO, so it's fine to ignore them.
 			try:
 				with io.open(HWMON_PATH + '/temp{0}_input'.format(i + 1)) as f:
-					# The value read from the file is in Celsius and multiplied by 1000, so convert it to a normal Celsius value
 					result[name] = Temperature(f.read().rstrip())
 			except IOError as e:
 				if e.errno != errno.ENXIO:
@@ -53,11 +52,13 @@ class Temperature:
 		
 		"""
 		
+		# The value read from the file is in Celsius and multiplied by 1000, so divide it by 1000
 		if Settings.ROUND_TEMPS:
 			self._value = round(float(value) / 1000)
 		else:
 			self._value = int(value) // 1000
 		
+		# Convert to Fahrenheit according to the setting
 		if Settings.FAHRENHEIT_OUTPUT:
 			self._value = self._value * 9 // 5 + 32
 		
