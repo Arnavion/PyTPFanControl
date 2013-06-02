@@ -58,11 +58,7 @@ class Temperature:
 		else:
 			self._value = int(value) // 1000
 		
-		# Convert to Fahrenheit according to the setting
-		if Settings.FAHRENHEIT_OUTPUT:
-			self._value = self._value * 9 // 5 + 32
-		
-		self._displayString = str(self._value)
+		self._displayString = None
 	
 	def __int__(self):
 		return self._value
@@ -70,7 +66,18 @@ class Temperature:
 	def __str__(self):
 		"""Return the temperature in either Celsius or Fahrenheit depending on the user's preferences."""
 		
+		if self._displayString == None:
+			value = self._value
+			if Settings.FAHRENHEIT_OUTPUT:
+				value = value * 9 // 5 + 32
+			self._displayString = str(value)
+		
 		return self._displayString
+	
+	def __repr__(self):
+		"""Return the temperature in either Celsius or Fahrenheit depending on the user's preferences."""
+		
+		return 'Temperature({0})'.format(self._value)
 	
 	def __lt__(self, other):
 		return int(self) < int(other)
