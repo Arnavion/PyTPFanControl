@@ -84,6 +84,12 @@ class Temperature:
 	
 	def __gt__(self, other):
 		return int(self) > int(other)
+	
+	def __eq__(self, other):
+		return self._value == other._value
+	
+	def __ne__(self, other):
+		return self._value != other._value
 
 
 class Fan:

@@ -210,10 +210,8 @@ class TPFCIconEngine(QIconEngine):
 		# Map of icon size rectangle to the maximum font size with which the text can be drawn to fit in the icon
 		self._fontSizes = {}
 		
-		# Name of the sensor with the highest temperature
-		self._name = ''
-		# Temperature of that sensor
-		self._temp = ''
+		# The currently displayed maximum temperature and sensor
+		self._maxTemp = ('', None)
 		
 		# The background brush
 		self._backgroundBrush = QBrush(Qt.SolidPattern)
@@ -227,7 +225,7 @@ class TPFCIconEngine(QIconEngine):
 		painter.eraseRect(rect)
 		
 		# The text to be displayed in the icon
-		text = '{0}\n{1}'.format(self._temp, self._name)
+		text = '{0}\n{1}'.format(self._maxTemp[1], self._maxTemp[0])
 		
 		self.setOptimalFontSize(painter, rect, text)
 		
@@ -241,13 +239,10 @@ class TPFCIconEngine(QIconEngine):
 		
 		maxTemp = self._tempsModel.maxTemp()
 		
-		name = maxTemp[0]
-		temp = maxTemp[1]
 		color = Settings.COLORS[TPFCIconEngine.COLOR_TEMPS[bisect.bisect_left(TPFCIconEngine.COLOR_TEMPS, maxTemp[1]) - 1]]
 		
-		if self._name != name or self._temp != temp or self._backgroundBrush.color() != color:
-			self._name = name
-			self._temp = temp
+		if self._maxTemp != maxTemp or self._backgroundBrush.color() != color:
+			self._maxTemp = maxTemp
 			self._backgroundBrush.setColor(color)
 			
 			return True
