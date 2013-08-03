@@ -1,7 +1,7 @@
 import os
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import QColor
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 
 
 class Settings:
@@ -21,10 +21,10 @@ class Settings:
 	)
 	
 	"""The background color of the icon. The key is the temperature in Celsius, and the value is the color."""
-	COLORS = {0: Qt.cyan, 50: Qt.yellow, 65: QColor('orange'), 90: Qt.red}
+	COLORS = {0: Qt.cyan, 45: Qt.yellow, 65: QColor('orange'), 90: Qt.red}
 	
 	"""The fan levels for SMART mode. The key is the temperature in Celsius, and the value is the fan level."""
-	LEVELS = {0: '0', 50: '1', 65: '3', 80: '7', 90: 'full-speed'}
+	LEVELS = {0: '0', 45: '1', 65: '3', 80: '7', 90: 'full-speed'}
 	
 	"""The time in seconds between updates of the thermal sensors and fan sensor."""
 	UPDATE_INTERVAL = 5

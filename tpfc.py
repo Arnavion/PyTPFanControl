@@ -5,9 +5,10 @@ import operator
 from os import path
 import sys
 
-from PyQt4 import uic
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5 import uic
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 from acpi import Fan
 from models import TemperaturesModel, FanModel
@@ -297,7 +298,7 @@ def main():
 	window = TPFCWindow()
 	
 	# Start the event loop
-	sys.exit(app.exec_())
+	sys.exit(app.exec())
 
 
 if __name__ == '__main__':
